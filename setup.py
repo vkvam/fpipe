@@ -1,24 +1,28 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-    Setup file for fpipe.
-    Use setup.cfg to configure your project.
-
-    This file was generated with PyScaffold 3.1.
-    PyScaffold helps you to put up the scaffold of your new Python project.
-    Learn more under: https://pyscaffold.org/
-"""
-import sys
-
-from pkg_resources import require, VersionConflict
-from setuptools import setup
-
-try:
-    require('setuptools>=38.3')
-except VersionConflict:
-    print("Error: version of setuptools is too old (<38.3)!")
-    sys.exit(1)
+from setuptools import setup, find_packages
 
 
-if __name__ == "__main__":
-    setup(use_pyscaffold=True)
+with open('README.rst') as readme:
+    long_description = readme.read()
+
+setup(
+    name='fpipe',
+    version='0.0.2',
+    description='Library for working with file-likes as piped streams',
+    long_description=long_description,
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python',
+        'Programming Language :: Python :: 3.7',
+        'Intended Audience :: Developers'
+    ],
+    keywords='pipe file stream',
+    url='https://github.com/vkvam/fpipe',
+    author='Vemund Kvam',
+    author_email='vemund.kvam@gmail.com',
+    license='MIT',
+    packages=find_packages(exclude=['*.tests']),
+    install_requires=[
+        'boto3'
+    ],
+)
