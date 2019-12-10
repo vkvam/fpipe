@@ -1,12 +1,13 @@
 from setuptools import setup, find_packages
 
-
 with open('README.rst') as readme:
     long_description = readme.read()
 
+version = '0.0.3'
+
 setup(
     name='fpipe',
-    version='0.0.2',
+    version=version,
     description='Library for working with file-likes as piped streams',
     long_description=long_description,
     classifiers=[
@@ -22,7 +23,5 @@ setup(
     author_email='vemund.kvam@gmail.com',
     license='MIT',
     packages=find_packages(exclude=['*.tests']),
-    install_requires=[
-        'boto3'
-    ],
+    install_requires=[],
 )
