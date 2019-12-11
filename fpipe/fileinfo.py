@@ -2,7 +2,7 @@ import threading
 from typing import Generator, Iterable, cast
 
 from .utils import BytesLoop, Stats
-from .abstract import FileGenerator, Stream, File, FileMetaCalculated, FileMeta
+from .abstract import Stream, File, FileMetaCalculated, FileMeta, FileStreamGenerator
 import hashlib
 
 
@@ -47,7 +47,7 @@ class FileInfoStream(Stream):
         return cast(CalculatedFileMeta, super().meta)
 
 
-class FileInfoGenerator(FileGenerator):
+class FileInfoGenerator(FileStreamGenerator):
     def __init__(self, files: Iterable[File], calculator: type(FileMetaCalculated)):
         super().__init__(files)
         self.calculator = calculator

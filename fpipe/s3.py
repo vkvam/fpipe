@@ -4,7 +4,7 @@ from typing import Generator, Iterable, Union, Optional, cast
 from fpipe.fileinfo import FileInfoException
 from fpipe.utils.mime import guess_mime
 from fpipe.utils.s3 import list_objects
-from .abstract import File, FileGenerator, Stream, SeekableStream, FileMeta
+from .abstract import File, Stream, SeekableStream, FileMeta, FileStreamGenerator
 from .utils.s3_reader import S3FileReader
 from .utils.s3_write import S3FileWriter
 
@@ -75,7 +75,7 @@ class S3SeekableStream(SeekableStream):
         return cast(S3FileInfoCalculated, super().meta)
 
 
-class S3FileGenerator(FileGenerator):
+class S3FileGenerator(FileStreamGenerator):
     def __init__(self,
                  files: Iterable[Union[S3File, S3Prefix, Stream]],
                  client,

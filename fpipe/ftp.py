@@ -1,6 +1,6 @@
 import os
 from typing import Generator, Iterable
-from .abstract import FileGenerator, Stream, FileMetaCalculated, FileMeta, File
+from .abstract import FileGenerator, Stream, FileMetaCalculated, FileMeta, File, FileStreamGenerator
 from .utils import FTPClient
 
 FNULL = open(os.devnull, 'w')
@@ -33,7 +33,7 @@ class FTPStream(Stream):
     pass
 
 
-class FTPFileGenerator(FileGenerator):
+class FTPFileGenerator(FileStreamGenerator):
     def __init__(self, files: Iterable[File]):
         super().__init__(files)
 

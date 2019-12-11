@@ -1,4 +1,5 @@
 from abc import abstractmethod
+from concurrent.futures.thread import ThreadPoolExecutor
 
 from typing import Iterable, Optional
 
@@ -40,7 +41,7 @@ class Stream(File):
     A non seekable file-like
     """
 
-    def __init__(self, file, meta: Optional[FileMeta] = None, parent: Optional['Stream'] = None):
+    def __init__(self, file, meta: Optional[FileMeta] = None, parent: Optional['File'] = None):
         super().__init__(meta=meta, parent=parent)
         self.__f = file
 
@@ -65,5 +66,21 @@ class FileGenerator:
         self.files = files
 
     @abstractmethod
-    def get_files(self) -> None:
+    def get_files(self) -> Iterable[File]:
         pass
+
+
+class FileStreamGenerator(FileGenerator):
+    """
+    A class that generates streams based on an input
+    """
+
+    @abstractmethod
+    def get_files(self) -> Iterable[Stream]:
+        pass
+
+    def start(self):
+        for f in self.get_files():
+            read = f.file.read
+            while read(2 ** 14):
+                pass
