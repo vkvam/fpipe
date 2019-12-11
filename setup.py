@@ -1,15 +1,16 @@
 from setuptools import setup, find_packages
 
-with open('README.rst') as readme:
+with open('README.md') as readme:
     long_description = readme.read()
 
-version = '0.0.5'
+version = '0.0.6'
 
 setup(
     name='fpipe',
     version=version,
     description='Library for working with file-likes as piped streams',
     long_description=long_description,
+    long_description_content_type='text/markdown',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'License :: OSI Approved :: MIT License',

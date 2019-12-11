@@ -1,7 +1,7 @@
 import tarfile
 from typing import Generator, Iterable, cast
 
-from .abstract import FileGenerator, File, FileMeta, Stream
+from .abstract import File, FileMeta, Stream, FileStreamGenerator
 
 
 class TarFileInfo(FileMeta):
@@ -60,15 +60,14 @@ class TarStream(Stream):
         return cast(TarFileInfo, super().meta)
 
 
-class TarFileGenerator(FileGenerator):
-    def __init__(self, files: Iterable[File]):
+class TarFileGenerator(FileStreamGenerator):
+    def __init__(self, files: Iterable[Stream]):
         super().__init__(files)
 
     def get_files(self) -> Generator[TarStream, None, None]:
         for source in self.files:
             try:
                 with tarfile.open(fileobj=source.file, mode='r|*') as tar_content_stream:
-
                     for tar_info in tar_content_stream:
                         tar_stream = tar_content_stream.extractfile(tar_info)
                         yield TarStream(tar_stream, TarFileInfo(tar_info))

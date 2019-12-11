@@ -2,11 +2,11 @@ import subprocess
 import threading
 from typing import Generator, Iterable
 
-from .utils import BytesLoop, Stats
-from .abstract import FileGenerator, Stream, File
+from .abstract import Stream, File, FileStreamGenerator
+from .utils import BytesLoop
 
 
-class ProcessFileGenerator(FileGenerator):
+class ProcessFileGenerator(FileStreamGenerator):
     def __init__(self, files: Iterable[File], cmd, buf_size=2**14):
         super().__init__(files)
         self.cmd = cmd
