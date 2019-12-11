@@ -5,7 +5,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 import gc
 
-DEFAULT_BLOCK_SIZE = 8*2**20
+DEFAULT_BLOCK_SIZE = 8 * 2 ** 20
 
 
 class S3FileWriter(ThreadPoolExecutor):
@@ -34,6 +34,8 @@ class S3FileWriter(ThreadPoolExecutor):
         self.work_queue = queue.Queue(maxsize=worker_limit)
         self.result_queue = queue.Queue()
         self.worker_limit = worker_limit
+
+        self.mpu_res = None
 
     def __enter__(self):
         self.buffer.reset()
@@ -85,12 +87,12 @@ class S3FileWriter(ThreadPoolExecutor):
             except queue.Empty:
                 pass
         results.sort(key=lambda x: x['PartNumber'])
-        self.client.complete_multipart_upload(UploadId=self.mpu['UploadId'],
-                                              MultipartUpload={'Parts': results},
-                                              Bucket=self.bucket,
-                                              Key=self.key)
-        self.progress_listener_queue.put(S3FileProgress("Multipart", "Multipart upload complete"))
+        self.mpu_res = self.client.complete_multipart_upload(UploadId=self.mpu['UploadId'],
+                                                             MultipartUpload={'Parts': results},
+                                                             Bucket=self.bucket,
+                                                             Key=self.key)
 
+        self.progress_listener_queue.put(S3FileProgress("Multipart", "Multipart upload complete"))
         return True
 
     @staticmethod

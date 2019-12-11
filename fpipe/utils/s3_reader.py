@@ -12,13 +12,17 @@ class S3FileReader(object):
                  s3_resource,
                  bucket,
                  key,
-                 cache_size=2**21,
+                 cache_size=2 ** 21,
                  cache_chunk_count_limit=16,
-                 lock: Optional[threading.Lock] = None):
+                 lock: Optional[threading.Lock] = None,
+                 version: Optional[str] = None):
         self.s3_client = s3_client
         self.s3_resource = s3_resource
+
         self.bucket = bucket
         self.key = key
+        self.version = version
+
         self.cache_chunk_size = cache_size
         self.cache_chunk_count_limit = cache_chunk_count_limit
 
@@ -30,9 +34,9 @@ class S3FileReader(object):
         self.cache_chunks = []
         self.last_chunk = None
         self.offset = 0
+        self.lock = lock
 
-        if lock:
-            self.lock = lock
+        if self.lock:
             self.lock.acquire()
         else:
             self.__initialize()
@@ -44,9 +48,17 @@ class S3FileReader(object):
         return True
 
     def __initialize(self):
-        for obj in self.s3_resource.Bucket(self.bucket).objects.filter(Prefix=self.key):
-            if obj.key == self.key:
-                self._size = obj.size
+        if self.version:
+            versions = self.s3_resource.Bucket(self.bucket).object_versions.filter(Prefix=self.key)
+            for version in versions:
+                this_ver = version.get().get('VersionId')
+                if this_ver == self.version:
+                    self._size = version.size
+                    break
+        else:
+            for obj in self.s3_resource.Bucket(self.bucket).objects.filter(Prefix=self.key):
+                if obj.key == self.key:
+                    self._size = obj.size
 
         if self._size == 0:
             raise Exception("Size is 0")
@@ -120,7 +132,10 @@ class S3FileReader(object):
         response = self.s3_client.get_object(
             Bucket=self.bucket,
             Key=self.key,
-            Range='bytes={0}-{1}'.format(str(chunk_start), str(chunk_end))
+            Range='bytes={0}-{1}'.format(str(chunk_start), str(chunk_end)),
+            **{
+                'VersionId': self.version
+            } if self.version else {}
         )
 
         if len(self.cache_chunks) >= self.cache_chunk_count_limit:
@@ -131,5 +146,3 @@ class S3FileReader(object):
 
         self.bytes_recieved += chunk_end - chunk_start + 1
         return chunk
-
-
