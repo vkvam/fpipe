@@ -1,32 +1,31 @@
 import threading
 from time import sleep
-from .stats import Stats
 
 
 class BytesLoop:
-    def __init__(self, bufsize=2 ** 14):
+    def __init__(self, buf_size=2 ** 14, lock_wait=0.00001):
         self.buffer = bytearray()
         self.done = False
         self.lock = threading.Lock()
-        self.bufsize = bufsize
-        self.stats = Stats(self.__class__.__name__)
+        self.buf_size = buf_size
+        self.lock_wait = lock_wait
+        # self.stats = Stats(self.__class__.__name__)
 
-        self.write_limit = 1
-        self.writes = 0
+    def reset(self):
+        self.done = False
+        self.buffer.clear()
 
     def __r(self, n=None):
         self.lock.acquire()
         chunk = self.buffer[:n]
         while not chunk and not self.done:
             self.lock.release()
-            sleep(0.00001)  # Allow writes
+            sleep(self.lock_wait)  # Allow writes
             self.lock.acquire()
             chunk = self.buffer[:n]
-
         del self.buffer[:len(chunk)]
         self.lock.release()
 
-        self.stats.r(chunk)
         return chunk
 
     def read(self, n=None) -> bytes:
@@ -39,12 +38,27 @@ class BytesLoop:
             return ret
         return chunk
 
-    def write(self, b: bytes):
-        while len(self.buffer) >= self.bufsize:
-            sleep(0.00000001)
-        self.lock.acquire()
-        self.buffer += b
-        self.lock.release()
-        self.stats.w(b)
-        if b == b'':
-            self.done = True
+    def write(self, data: bytes):
+        data_len = len(data)
+        if not data_len:
+            self.done = True  # EOF
+            return
+
+        while True:
+            self.lock.acquire()
+            remaining_buffer = self.buf_size - len(self.buffer)
+            chunk_length = min(remaining_buffer, data_len)
+
+            if chunk_length == data_len:
+                self.buffer += data
+                self.lock.release()
+                break
+            else:
+                if not isinstance(data, bytearray):
+                    data = bytearray(data)
+                chunk = data[:remaining_buffer]
+                del data[:chunk_length]
+                data_len -= chunk_length
+                self.buffer += chunk
+                self.lock.release()
+                sleep(self.lock_wait)

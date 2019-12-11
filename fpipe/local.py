@@ -1,9 +1,9 @@
 from typing import Union, Iterable
 
-from .abstract import File, FileGenerator, Stream, SeekableStream, FileInfoCalculator, FileInfo
+from .abstract import File, FileGenerator, Stream, SeekableStream, FileMetaCalculated, FileMeta
 
 
-class LocalFileInfoCalculator(FileInfoCalculator):
+class LocalFileInfoCalculator(FileMetaCalculated):
     def __init__(self, path):
         super().__init__()
         self.path = path
@@ -11,8 +11,8 @@ class LocalFileInfoCalculator(FileInfoCalculator):
     def write(self, b: bytes):
         pass
 
-    def get(self) -> FileInfo:
-        return FileInfo(path=self.path)
+    def get(self) -> FileMeta:
+        return FileMeta(path=self.path)
 
 
 class LocalFile(File):
@@ -31,7 +31,7 @@ class LocalFileGenerator(FileGenerator):
             try:
                 if isinstance(source, LocalFile):
                     with open(source.path, 'rb') as f:
-                        yield LocalSeekableStream(f, source.file_info_generator)
+                        yield LocalSeekableStream(f, source.meta)
                 elif isinstance(source, Stream):
                     pass
             except Exception as e:

@@ -6,32 +6,33 @@ from dataclasses import dataclass
 
 
 @dataclass
-class FileInfo:
+class FileMeta:
     path: str = None
-    size: int = None
-    checksum_md5: str = None
 
 
-class FileInfoCalculator:
+class FileMetaCalculated(FileMeta):
     """
     Class that calculates file info from a stream of bytes
     """
 
-    def __init__(self, source_calculator: Optional['FileInfoCalculator'] = None):
-        self.source_calculator = source_calculator
+    def __init__(self, calculator: Optional['FileMetaCalculated'] = None):
+        self.calculator = calculator
 
     @abstractmethod
     def write(self, b: bytes):
         pass
 
-    @abstractmethod
-    def get(self) -> FileInfo:
-        pass
-
 
 class File:
-    def __init__(self, file_info_generator: FileInfoCalculator):
-        self.file_info_generator = file_info_generator
+    def __init__(self,
+                 meta: Optional[FileMeta] = None,
+                 parent: Optional['File'] = None):
+        self._meta = meta
+        self.parent = parent
+
+    @property
+    def meta(self) -> FileMeta:
+        return self._meta
 
 
 class Stream(File):
@@ -39,9 +40,9 @@ class Stream(File):
     A non seekable file-like
     """
 
-    def __init__(self, f, metadata):
-        super().__init__(metadata)
-        self.__f = f
+    def __init__(self, file, meta: Optional[FileMeta] = None, parent: Optional['Stream'] = None):
+        super().__init__(meta=meta, parent=parent)
+        self.__f = file
 
     @property
     def file(self):

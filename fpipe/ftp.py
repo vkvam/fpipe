@@ -1,12 +1,12 @@
 import os
 from typing import Generator, Iterable
-from .abstract import FileGenerator, Stream, FileInfoCalculator, FileInfo, File
+from .abstract import FileGenerator, Stream, FileMetaCalculated, FileMeta, File
 from .utils import FTPClient
 
 FNULL = open(os.devnull, 'w')
 
 
-class FTPFileInfoCalculator(FileInfoCalculator):
+class FTPFileInfoCalculator(FileMetaCalculated):
     def __init__(self, path):
         super().__init__()
         self.path = path
@@ -14,8 +14,8 @@ class FTPFileInfoCalculator(FileInfoCalculator):
     def write(self, b: bytes):
         pass
 
-    def get(self) -> FileInfo:
-        return FileInfo(path=self.path)
+    def get(self) -> FileMeta:
+        return FileMeta(path=self.path)
 
 
 class FTPFile(File):

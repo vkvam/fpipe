@@ -48,9 +48,9 @@ class FTPClient(object):
             ftp.close()
 
     def write_to_file_threaded(self, path):
-        t2 = threading.Thread(target=self.write_to_file, args=(path,))
-        t2.start()
-        return t2
+        thread = threading.Thread(target=self.write_to_file, args=(path,), daemon=True)
+        thread.start()
+        return thread
 
     def write_to_file(self, path: str):
         ftp = self._get_session()

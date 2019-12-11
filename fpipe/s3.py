@@ -1,33 +1,51 @@
 import mimetypes
 from threading import Thread, Lock
-from typing import Generator, Iterable, Union, Optional
+from typing import Generator, Iterable, Union, Optional, cast
 
-from .abstract import File, FileGenerator, Stream, SeekableStream, FileInfoCalculator, FileInfo
-from .utils import Stats
+from fpipe.fileinfo import FileInfoException
+from .abstract import File, FileGenerator, Stream, SeekableStream, FileMeta
 from .utils.s3_reader import S3FileReader
 from .utils.s3_write import S3FileWriter
 
 
-class S3FileInfoCalculator(FileInfoCalculator):
-    def __init__(self, path):
+class S3FileInfoCalculated(FileMeta):
+    def __init__(self, reader: S3FileReader):
         super().__init__()
-        self.path = path
+        self.reader = reader
+        self.meta = None
+        self.boto_meta_map = {
+            'size': lambda x: x['ContentLength'],
+            'modified': lambda x: x['LastModified']
+        }
 
-    def write(self, b: bytes):
-        pass
+    def _get_metadata(self, key: str):
+        if self.reader.lock and self.reader.lock.locked():
+            raise FileInfoException("S3 object meta is not available until after object has been written")
+        self.meta = self.meta or self.reader.s3_client.get_object(Bucket=self.reader.bucket, Key=self.reader.key)
+        return self.boto_meta_map[key](self.meta)
 
-    def get(self) -> FileInfo:
-        return FileInfo(path=self.path)
+    @property
+    def size(self):
+        return self._get_metadata('size')
+
+    @property
+    def modified(self):
+        return self._get_metadata('modified')
 
 
 class S3File(File):
     def __init__(self, path: str):
-        super().__init__(S3FileInfoCalculator(path))
+        super().__init__(S3FileInfoCalculated(None))  # TODO: Fix
         self.path = path
 
 
 class S3SeekableStream(SeekableStream):
-    pass
+    def __init__(self, file):
+        super().__init__(file, S3FileInfoCalculated(file))
+
+    @property
+    def meta(self) -> S3FileInfoCalculated:
+        return cast(S3FileInfoCalculated, super().meta)
 
 
 class S3FileGenerator(FileGenerator):
@@ -37,7 +55,7 @@ class S3FileGenerator(FileGenerator):
         self.client = client
         self.resource = resource
 
-        self.stats = Stats(self.__class__.__name__, 1)
+        # self.stats = Stats(self.__class__.__name__, 1)
 
     def get_files(self) -> Generator[S3SeekableStream, None, None]:
         for source in self.files:
@@ -47,12 +65,13 @@ class S3FileGenerator(FileGenerator):
                 if isinstance(source, S3File):
                     bucket, key = self.bucket, source.path
                     reader = S3FileReader(client, resource, bucket, key)
-                    yield S3SeekableStream(reader, S3FileInfoCalculator(key))
+                    yield S3SeekableStream(reader)
 
                 elif isinstance(source, Stream):
 
                     bucket = self.bucket
-                    key = source.file_info_generator.get().path
+                    key = source.meta.path
+                    # TODO: Use default byte tipe if no mime is found
                     mime, encoding = mimetypes.guess_type(key, False)
 
                     lock = Lock()
@@ -62,18 +81,17 @@ class S3FileGenerator(FileGenerator):
                         with S3FileWriter(client, bucket, key, mime=mime) as writer:
                             while True:
                                 b = source.file.read(writer.buffer.chunk_size)
-                                self.stats.w(b)
+                                # self.stats.w(b)
                                 writer.write(b)
                                 if not b:
                                     break
                         lock.release()
 
-                    transfer_thread = Thread(target=transfer_thread)
+                    transfer_thread = Thread(target=transfer_thread, daemon=True, name=self.__class__.__name__)
                     transfer_thread.start()
 
-                    yield S3SeekableStream(reader, S3FileInfoCalculator(key))
-
+                    yield S3SeekableStream(reader)
                     transfer_thread.join()
 
-            except Exception as e:
-                raise e
+            except Exception:
+                raise

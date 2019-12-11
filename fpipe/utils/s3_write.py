@@ -19,10 +19,8 @@ class S3FileWriter(ThreadPoolExecutor):
                  mime=None,
                  progress_listener_queue=None):
         super().__init__()
-
         if mime is None:
             raise Exception("Mime type must be set")
-
         block_size = max(2 ** 20 * 5, block_size)  # Block size must be over 5MB (aws rule)
         self.client = s3_client
         self.bucket = bucket
@@ -106,7 +104,6 @@ class S3FileWriter(ThreadPoolExecutor):
                 continue
 
             try:
-                progress_queue.put(S3FileProgress("Memory use", memory_usage(-1)[0]))
 
                 part = client.upload_part(
                     PartNumber=part_index,
@@ -130,7 +127,8 @@ class S3FileWriter(ThreadPoolExecutor):
                     raise Exception(progress)
                 else:
                     progress_queue.put(
-                        S3FileProgress("Part nr {} upload".format(part_index), 'ok [{}]'.format(len(data))))
+                        S3FileProgress("Part nr {} upload".format(part_index), 'ok [{}]'.format(len(data)))
+                    )
 
                 result_queue.put({
                     'PartNumber': part_index,
@@ -171,7 +169,6 @@ class Buffer(object):
         try:
             return self.buffer[:self.chunk_size], self.part_number
         finally:
-            # self.buffer = self.buffer[self.chunk_size:]
             del self.buffer[:self.chunk_size]
             self.part_number += 1
 

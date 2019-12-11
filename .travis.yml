@@ -10,4 +10,7 @@ deploy:
   on:
     tags: true
     python: 3.7
-script: python -m unittest discover tests
+install:
+  - pip install tox-travis
+script:
+  - tox

@@ -1,8 +1,8 @@
 import threading
-from typing import Generator, Iterable
+from typing import Generator, Iterable, cast
 
 from .utils import BytesLoop, Stats
-from .abstract import FileGenerator, Stream, File, FileInfoCalculator, FileInfo
+from .abstract import FileGenerator, Stream, File, FileMetaCalculated, FileMeta
 import hashlib
 
 
@@ -10,54 +10,70 @@ class FileInfoException(Exception):
     pass
 
 
-class ChecksumCalculator(FileInfoCalculator):
-    def __init__(self, source_calculator: 'FileInfoCalculator'):
-        super().__init__(source_calculator)
-        self.size = 0
-        self.sig = hashlib.md5()
-        self.all_bytes_processed = False
+class CalculatedFileMeta(FileMeta):
+    def __init__(self, info: FileMeta):
+        self.path = info.path
+        self._size = None
+        self._size_count = 0
+        self.__sig = hashlib.md5()
+        self.__all_bytes_processed = False
+        self.__exception = None
 
-    def write(self, b: bytes):
-        self.size += len(b)
-        self.sig.update(b)
+        self._checksum_md5 = None
+
+    def _write(self, b: bytes):
+        self._size_count += len(b)
+        self.__sig.update(b)
         if not b:
-            self.all_bytes_processed = True
+            self._size = self._size_count
+            self._checksum_md5 = self.__sig.hexdigest()
 
-    def get(self) -> FileInfo:
-        if not self.all_bytes_processed:
-            raise FileInfoException("Can not return checksum or size before file has been completely read")
-        source_file_info = self.source_calculator.get()
-        source_file_info.size = self.size
-        source_file_info.checksum_md5 = self.sig.hexdigest()
-        return source_file_info
+    @property
+    def checksum_md5(self):
+        if not self._checksum_md5:
+            raise FileInfoException("Can not return checksum before file has been completely read")
+        return self._checksum_md5
+
+    @property
+    def size(self):
+        if not self._size:
+            raise FileInfoException("Can not return size before file has been completely read")
+        return self._size
+
+
+class FileInfoStream(Stream):
+    @property
+    def meta(self) -> CalculatedFileMeta:
+        return cast(CalculatedFileMeta, super().meta)
 
 
 class FileInfoGenerator(FileGenerator):
-    def __init__(self, files: Iterable[File], calculator: type(FileInfoCalculator)):
+    def __init__(self, files: Iterable[File], calculator: type(FileMetaCalculated)):
         super().__init__(files)
         self.calculator = calculator
         self.bufsize = 2 ** 14
 
-    def get_files(self) -> Generator[Stream, None, None]:
+    def get_files(self) -> Generator[FileInfoStream, None, None]:
         for source in self.files:
             byte_loop = BytesLoop()
             buf_size = self.bufsize
-            stats = Stats(self.__class__.__name__)
+            # stats = Stats(self.__class__.__name__)
 
-            calculator = self.calculator(source.file_info_generator)
+            calculator = self.calculator(source.meta)
 
             def __process():
-                calc = calculator.write
+                calc = calculator._write
                 while True:
                     b = source.file.read(buf_size)
-                    stats.r(b)
+                    # stats.r(b)
                     calc(b)
+
                     byte_loop.write(b)
                     if not b:  # EOF
                         break
 
-            proc_thread = threading.Thread(target=__process)
+            proc_thread = threading.Thread(target=__process, name=f'{self.__class__.__name__}', daemon=True)
             proc_thread.start()
 
-            yield Stream(byte_loop, calculator)
+            yield Stream(byte_loop, calculator, source)
             proc_thread.join()

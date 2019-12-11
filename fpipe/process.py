@@ -7,16 +7,15 @@ from .abstract import FileGenerator, Stream, File
 
 
 class ProcessFileGenerator(FileGenerator):
-    def __init__(self, files: Iterable[File], cmd):
+    def __init__(self, files: Iterable[File], cmd, buf_size=2**14):
         super().__init__(files)
         self.cmd = cmd
-        self.bufsize = 2 ** 14
+        self.byte_loop = BytesLoop(buf_size)
 
     def get_files(self) -> Generator[Stream, None, None]:
         for source in self.files:
-            byte_loop = BytesLoop()
-            buf_size = self.bufsize
-            stats = Stats(self.__class__.__name__)
+            buf_size = self.byte_loop.buf_size
+            # stats = Stats(self.__class__.__name__)
 
             with subprocess.Popen(self.cmd,
                                   stdin=subprocess.PIPE,
@@ -27,8 +26,8 @@ class ProcessFileGenerator(FileGenerator):
                 def __stdout_to_file():
                     while True:
                         e = proc.stdout.read(buf_size)
-                        stats.w(e)
-                        byte_loop.write(e)
+                        # stats.w(e)
+                        self.byte_loop.write(e)
 
                         if not e:
                             proc.stdout.close()  # EOF
@@ -37,20 +36,22 @@ class ProcessFileGenerator(FileGenerator):
                 def __std_in_to_cmd():
                     while True:
                         read_chunk = source.file.read(buf_size)
-                        stats.r(read_chunk)
+                        # stats.r(read_chunk)
                         proc.stdin.write(read_chunk)
 
                         if not read_chunk:  # EOF
                             proc.stdin.close()
                             break
 
-                stdout_thread = threading.Thread(target=__stdout_to_file)
+                stdout_thread = threading.Thread(target=__stdout_to_file, name=f'{self.__class__.__name__} STD-OUT',
+                                                 daemon=True)
                 stdout_thread.start()
 
-                stdin_thread = threading.Thread(target=__std_in_to_cmd)
+                stdin_thread = threading.Thread(target=__std_in_to_cmd, name=f'{self.__class__.__name__} STD-OUT',
+                                                daemon=True)
                 stdin_thread.start()
-
-                yield Stream(byte_loop, source.file_info_generator)
-
+                yield Stream(self.byte_loop, source.meta, parent=source)
                 stdin_thread.join()
                 stdout_thread.join()
+            # Should be non-problematic reusing the byte-loop since files are yielded sequentially
+            self.byte_loop.reset()
