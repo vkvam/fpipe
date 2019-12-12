@@ -1,6 +1,7 @@
 import threading
 from typing import Union, Iterable
 
+from fpipe.utils import BytesLoop
 from .abstract import File, Stream, SeekableStream, FileMetaCalculated, FileMeta, FileStreamGenerator
 
 
@@ -38,18 +39,22 @@ class LocalFileGenerator(FileStreamGenerator):
                     with open(source.path, 'rb') as f:
                         yield LocalSeekableStream(f, parent=source)
                 elif isinstance(source, Stream):
-                    def __process():
+                    def __process(byte_loop=None):
                         with open(source.meta.path, 'wb') as f:
                             while True:
                                 b = source.file.read(2 ** 14)
+                                if byte_loop:
+                                    byte_loop.write(b)
                                 f.write(b)
                                 if not b:
                                     break
 
                     if self.pass_through:
-                        proc_thread = threading.Thread(target=__process, name=f'{self.__class__.__name__}', daemon=True)
+                        pass_through = BytesLoop()
+                        proc_thread = threading.Thread(target=__process, args=(pass_through,),
+                                                       name=f'{self.__class__.__name__}', daemon=True)
                         proc_thread.start()
-                        yield Stream(source.file, parent=source)
+                        yield Stream(pass_through, parent=source)
                         proc_thread.join()
                     else:
                         __process()
