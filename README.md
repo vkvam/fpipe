@@ -11,7 +11,7 @@ Designed for python 3.7, for S3 support you need boto3
 brew install python3
 pip3 install fpipe
 # Optional
-pip3 insstall boto3
+pip3 install boto3
 ```
 
 ### Getting started
