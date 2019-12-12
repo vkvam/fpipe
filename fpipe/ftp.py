@@ -6,7 +6,7 @@ from .utils import FTPClient
 FNULL = open(os.devnull, 'w')
 
 
-class FTPFileInfoCalculator(FileMetaCalculated):
+class FTPFileInfoCalculated(FileMetaCalculated):
     def __init__(self, path):
         super().__init__()
         self.path = path
@@ -20,7 +20,7 @@ class FTPFileInfoCalculator(FileMetaCalculated):
 
 class FTPFile(File):
     def __init__(self, path: str, host: str, username: str, password: str, port: int, block_size: int = 2 ** 23):
-        super().__init__(FTPFileInfoCalculator(path))
+        super().__init__(FTPFileInfoCalculated(path))
         self.path = path
         self.host = host
         self.username = username
@@ -47,6 +47,6 @@ class FTPFileGenerator(FileStreamGenerator):
                                    port=source.port)
             try:
                 ftp_client.write_to_file_threaded(source.path)
-                yield Stream(ftp_client.bytes_io, source.file_info_generator)
+                yield Stream(ftp_client.bytes_io, parent=source)
             except Exception as e:
                 raise e

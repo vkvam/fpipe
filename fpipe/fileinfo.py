@@ -11,8 +11,7 @@ class FileInfoException(Exception):
 
 
 class CalculatedFileMeta(FileMeta):
-    def __init__(self, info: FileMeta):
-        self.path = info.path
+    def __init__(self):
         self._size = None
         self._size_count = 0
         self.__sig = hashlib.md5()
@@ -59,7 +58,7 @@ class FileInfoGenerator(FileStreamGenerator):
             buf_size = self.bufsize
             # stats = Stats(self.__class__.__name__)
 
-            calculator = self.calculator(source.meta)
+            calculator = self.calculator()
 
             def __process():
                 calc = calculator._write
@@ -75,5 +74,5 @@ class FileInfoGenerator(FileStreamGenerator):
             proc_thread = threading.Thread(target=__process, name=f'{self.__class__.__name__}', daemon=True)
             proc_thread.start()
 
-            yield Stream(byte_loop, calculator, source)
+            yield Stream(byte_loop, calculator, parent=source)
             proc_thread.join()

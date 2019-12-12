@@ -50,7 +50,7 @@ class ProcessFileGenerator(FileStreamGenerator):
                 stdin_thread = threading.Thread(target=__std_in_to_cmd, name=f'{self.__class__.__name__} STD-OUT',
                                                 daemon=True)
                 stdin_thread.start()
-                yield Stream(self.byte_loop, source.meta, parent=source)
+                yield Stream(self.byte_loop, parent=source)
                 stdin_thread.join()
                 stdout_thread.join()
             # Should be non-problematic reusing the byte-loop since files are yielded sequentially
