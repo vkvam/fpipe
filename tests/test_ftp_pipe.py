@@ -34,8 +34,8 @@ class TestFTP(TestCase):
 
         try:
             for path, size in files_in.items():
-                with Popen(f"mkfile -n {size} {path}", shell=True) as p:
-                    p.communicate()
+                with open(path, 'wb') as f:
+                    f.write(b'x'*size)
 
             gen = FTPFileGenerator(
                 FTPFile(
