@@ -23,20 +23,23 @@ from fpipe.local import LocalFileGenerator
 
 example_streams = (
     Stream(
-        io.BytesIO(bytes(f'{name}', encoding='utf-8') * 2 ** 6), FileMeta(f'{name}.file')
+        io.BytesIO(
+            bytes(f'{name}', encoding='utf-8') * 2 ** 6
+        ),
+        FileMeta(f'{name}.file')
     )
     for name in ('x', 'y', 'z')
 )
 gen = FileInfoGenerator(example_streams, CalculatedFileMeta)
-gen = LocalFileGenerator(gen.get_files(), pass_through=True)
-for f in gen.get_files():
-    print(f"Name: {f.parent.meta.path}")
+for f in LocalFileGenerator(gen, pass_through=True, pathname_resolver=lambda x: x.parent.meta.path):
+    print(f"Name: {f.parent.parent.meta.path}")
     while True:
         b = f.file.read(2)
         print(b.decode('utf-8'), end='')
         if not b:
             break
     print(f"\nChecksum: {f.parent.meta.checksum_md5}\n")
+
 ```
 
 See unittests for more examples

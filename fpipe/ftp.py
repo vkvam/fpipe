@@ -37,7 +37,7 @@ class FTPFileGenerator(FileStreamGenerator):
     def __init__(self, files: Iterable[File]):
         super().__init__(files)
 
-    def get_files(self) -> Generator[FTPStream, None, None]:
+    def __iter__(self) -> Iterable[FTPStream]:
         for source in self.files:
 
             ftp_client = FTPClient(host=source.host,

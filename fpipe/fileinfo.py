@@ -52,7 +52,7 @@ class FileInfoGenerator(FileStreamGenerator):
         self.calculator = calculator
         self.bufsize = 2 ** 14
 
-    def get_files(self) -> Generator[FileInfoStream, None, None]:
+    def __iter__(self) -> Iterable[FileInfoStream]:
         for source in self.files:
             byte_loop = BytesLoop()
             buf_size = self.bufsize

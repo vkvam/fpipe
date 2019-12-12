@@ -64,7 +64,7 @@ class TarFileGenerator(FileStreamGenerator):
     def __init__(self, files: Iterable[Stream]):
         super().__init__(files)
 
-    def get_files(self) -> Generator[TarStream, None, None]:
+    def __iter__(self) -> Iterable[TarStream]:
         for source in self.files:
             try:
                 with tarfile.open(fileobj=source.file, mode='r|*') as tar_content_stream:

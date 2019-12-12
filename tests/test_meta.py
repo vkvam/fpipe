@@ -31,13 +31,13 @@ class TestFileIO(TestCase):
         )
 
         # Get checksum for initial files
-        gen = FileInfoGenerator(gen.get_files(), CalculatedFileMeta)
+        gen = FileInfoGenerator(gen, CalculatedFileMeta)
         # Reverse stdout
-        gen = ProcessFileGenerator(gen.get_files(), "rev|tr -d '\n'")
+        gen = ProcessFileGenerator(gen, "rev|tr -d '\n'")
         # Get checksum for reversed files
-        gen = FileInfoGenerator(gen.get_files(), CalculatedFileMeta)
+        gen = FileInfoGenerator(gen, CalculatedFileMeta)
 
-        for f in gen.get_files():
+        for f in gen:
             f.file.read(1)
             # Assert that we are not able to retrieve calculated data before files have been completely read
             with self.assertRaises(FileInfoException):

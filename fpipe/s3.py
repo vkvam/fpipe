@@ -88,7 +88,7 @@ class S3FileGenerator(FileStreamGenerator):
 
         # self.stats = Stats(self.__class__.__name__, 1)
 
-    def get_files(self) -> Generator[S3SeekableStream, None, None]:
+    def __iter__(self) -> Iterable[S3SeekableStream]:
         for source in self.files:
             try:
                 client, resource = self.client, self.resource

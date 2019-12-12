@@ -1,6 +1,6 @@
 import subprocess
 import threading
-from typing import Generator, Iterable
+from typing import Iterable
 
 from .abstract import Stream, File, FileStreamGenerator
 from .utils import BytesLoop
@@ -12,7 +12,7 @@ class ProcessFileGenerator(FileStreamGenerator):
         self.cmd = cmd
         self.byte_loop = BytesLoop(buf_size)
 
-    def get_files(self) -> Generator[Stream, None, None]:
+    def __iter__(self) -> Iterable[Stream]:
         for source in self.files:
             buf_size = self.byte_loop.buf_size
             # stats = Stats(self.__class__.__name__)

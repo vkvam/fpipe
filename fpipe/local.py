@@ -1,5 +1,5 @@
 import threading
-from typing import Union, Iterable
+from typing import Union, Iterable, Callable
 
 from fpipe.utils import BytesLoop
 from .abstract import File, Stream, SeekableStream, FileMetaCalculated, FileMeta, FileStreamGenerator
@@ -28,11 +28,18 @@ class LocalSeekableStream(SeekableStream):
 
 
 class LocalFileGenerator(FileStreamGenerator):
-    def __init__(self, files: Iterable[File], pass_through=False):
+    def __init__(self, files: Iterable[File], pass_through=False, pathname_resolver: Callable[[File], str] = None):
+        """
+
+        :param files: files to process
+        :param pass_through: pass through the source instead of waiting for writes to complete
+        :param pathname_resolver: a function that sets the path for files written, the starting file is the source file
+        """
         super().__init__(files)
         self.pass_through = pass_through
+        self.pathname_resolver = pathname_resolver
 
-    def get_files(self) -> Iterable[Union[LocalSeekableStream, Stream]]:
+    def __iter__(self) -> Iterable[Union[LocalSeekableStream, Stream]]:
         for source in self.files:
             try:
                 if isinstance(source, LocalFile):
@@ -40,12 +47,13 @@ class LocalFileGenerator(FileStreamGenerator):
                         yield LocalSeekableStream(f, parent=source)
                 elif isinstance(source, Stream):
                     def __process(byte_loop=None):
-                        with open(source.meta.path, 'wb') as f:
+                        path_name = self.pathname_resolver(source) if self.pathname_resolver else source.meta.path
+                        with open(path_name, 'wb') as f2:
                             while True:
                                 b = source.file.read(2 ** 14)
                                 if byte_loop:
                                     byte_loop.write(b)
-                                f.write(b)
+                                f2.write(b)
                                 if not b:
                                     break
 

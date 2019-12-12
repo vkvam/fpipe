@@ -66,7 +66,7 @@ class FileGenerator:
         self.files = files
 
     @abstractmethod
-    def get_files(self) -> Iterable[File]:
+    def __iter__(self) -> Iterable[File]:
         pass
 
 
@@ -76,11 +76,11 @@ class FileStreamGenerator(FileGenerator):
     """
 
     @abstractmethod
-    def get_files(self) -> Iterable[Stream]:
+    def __iter__(self) -> Iterable[Stream]:
         pass
 
     def start(self):
-        for f in self.get_files():
+        for f in self:
             read = f.file.read
             while read(2 ** 14):
                 pass

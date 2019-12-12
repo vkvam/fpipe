@@ -19,12 +19,11 @@ class TestFileIO(TestCase):
                 [
                     gen
                 ]
-            ).get_files(),
+            ),
             "cat /dev/stdin"
         )
 
-        gen = FileInfoGenerator(gen.get_files(), CalculatedFileMeta)
-        for file in gen.get_files():
+        for file in FileInfoGenerator(gen, CalculatedFileMeta):
 
             with self.assertRaises(FileInfoException):
                 x = file.meta.checksum_md5

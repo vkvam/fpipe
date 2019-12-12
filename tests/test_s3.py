@@ -40,14 +40,14 @@ class TestFileIO(TestCase):
         gen = S3FileGenerator(
             TestFileGenerator(
                 (test_stream,)
-            ).get_files(),
+            ),
             client,
             resource,
             bucket=bucket
         )
 
-        gen = FileInfoGenerator(gen.get_files(), CalculatedFileMeta)
-        for f in gen.get_files():
+        gen = FileInfoGenerator(gen, CalculatedFileMeta)
+        for f in gen:
             with self.assertRaises(FileInfoException):
                 # It is not possible to retrieve size from S3FileGenerator before object has been written
                 x = f.parent.meta.size
@@ -87,7 +87,7 @@ class TestFileIO(TestCase):
 
         self.__create_objects(client, bucket, all_files)
         gen = S3FileGenerator((S3Prefix(bucket, prefix) for prefix in prefixes), client, resource)
-        for f in gen.get_files():
+        for f in gen:
             source_key, source_body = all_files_copy.pop(0)
             self.assertEqual(f.file.read(), source_body)
         self.assertEqual(len(all_files_copy), 0)
@@ -110,7 +110,7 @@ class TestFileIO(TestCase):
         gen = S3FileGenerator((S3File(bucket, key) for key, _ in all_files), client, resource)
 
         all_files_copy = copy(all_files)
-        for f in gen.get_files():
+        for f in gen:
             source_key, source_body = all_files_copy.pop(0)
             self.assertEqual(source_key, f.meta.key)
             self.assertEqual(f.file.read(), source_body)
@@ -139,13 +139,13 @@ class TestFileIO(TestCase):
         gen = S3FileGenerator(
             TestFileGenerator(
                 test_streams
-            ).get_files(),
+            ),
             client,
             resource,
             bucket=bucket
         )
 
-        versions = [[f.meta.key, f.file.read() and f.meta.version] for f in gen.get_files()]
+        versions = [[f.meta.key, f.file.read() and f.meta.version] for f in gen]
 
         # Horrible hack since moto does not return VersionId for multipart uploads
         for idx, version in enumerate(resource.Bucket(bucket).object_versions.filter(Prefix='xyz')):
@@ -162,7 +162,7 @@ class TestFileIO(TestCase):
             bucket=bucket
         )
 
-        for f in gen.get_files():
+        for f in gen:
             content = f.file.read()
             self.assertEqual(f.meta.version, versions.pop(0)[1])
             t_stream = test_streams.pop(0)

@@ -46,6 +46,6 @@ class TestFileGenerator(FileGenerator):
     def __init__(self, files: Iterable[TestStream]):
         super().__init__(files)
 
-    def get_files(self) -> Iterable[TestStream]:
+    def __iter__(self) -> Iterable[TestStream]:
         for f in self.files:
             yield f

@@ -48,8 +48,8 @@ class TestTar(TestCase):
 
         # Pass it through ProcessFileGenerator to ensure we are working with a non-seekable stream
         proc = ProcessFileGenerator((tar_stream,), cmd='cat /dev/stdin')
-        proc = TarFileGenerator(proc.get_files())
-        for f in proc.get_files():
+        proc = TarFileGenerator(proc)
+        for f in proc:
             source_content, source_path, source_size, source_time = source_file_content.pop(0)
             self.assertEqual(source_content, f.file.read())
             self.assertEqual(source_path, f.meta.path)

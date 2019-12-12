@@ -50,19 +50,19 @@ class TestFTP(TestCase):
 
             # Encrypt and decrypt
             gen = ProcessFileGenerator(
-                gen.get_files(),
+                gen,
                 "gpg --batch --symmetric --passphrase 'X'"
             )
 
             gen = ProcessFileGenerator(
-                gen.get_files(),
+                gen,
                 "gpg --batch --decrypt --passphrase 'X'"
             )
 
             # Calculate checksum of output
-            gen = FileInfoGenerator(gen.get_files(), CalculatedFileMeta)
+            gen = FileInfoGenerator(gen, CalculatedFileMeta)
 
-            for file_out in gen.get_files():
+            for file_out in gen:
                 content_out = file_out.file.read()
                 run_balance = False
 
