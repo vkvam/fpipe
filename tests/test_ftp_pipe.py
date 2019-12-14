@@ -1,12 +1,11 @@
 import hashlib
 import os
-from subprocess import Popen
 
 from unittest import TestCase
 
 from fpipe.fileinfo import FileInfoGenerator, CalculatedFileMeta
-from fpipe.ftp import FTPFileGenerator, FTPFile
-from fpipe.process import ProcessFileGenerator
+from fpipe.generators import FTPFileGenerator, FTPFile
+from fpipe.generators import ProcessFileGenerator
 from test_utils.ftp_server import TestFTPServer
 
 

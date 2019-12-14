@@ -3,11 +3,11 @@ from copy import copy
 from unittest import TestCase
 from fpipe.fileinfo import FileInfoException, FileInfoGenerator, CalculatedFileMeta
 from moto import mock_s3, mock_iam, mock_config
-from fpipe.s3 import S3FileGenerator, S3File, S3Prefix
+from fpipe.generators import S3FileGenerator, S3File, S3PrefixFile
 from test_utils.test_file import TestStream, TestFileGenerator
 
 
-class TestFileIO(TestCase):
+class TestS3(TestCase):
 
     def __init_s3(self, bucket="aws"):
         import boto3
@@ -86,7 +86,7 @@ class TestFileIO(TestCase):
         all_files_copy = copy(all_files)
 
         self.__create_objects(client, bucket, all_files)
-        gen = S3FileGenerator((S3Prefix(bucket, prefix) for prefix in prefixes), client, resource)
+        gen = S3FileGenerator((S3PrefixFile(bucket, prefix) for prefix in prefixes), client, resource)
         for f in gen:
             source_key, source_body = all_files_copy.pop(0)
             self.assertEqual(f.file.read(), source_body)

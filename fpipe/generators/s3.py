@@ -4,19 +4,18 @@ from typing import Generator, Iterable, Union, Optional, cast
 from fpipe.fileinfo import FileInfoException
 from fpipe.utils.mime import guess_mime
 from fpipe.utils.s3 import list_objects
-from .abstract import File, Stream, SeekableStream, FileMeta, FileStreamGenerator
-from .utils.s3_reader import S3FileReader
-from .utils.s3_write import S3FileWriter
+from fpipe.file import File, FileStream, SeekableFileStream, FileMeta, FileStreamGenerator
+from fpipe.utils.s3_reader import S3FileReader
+from fpipe.utils.s3_write import S3FileWriter
 
 
-class S3FileInfoCalculated(FileMeta):
+class S3FileInfo(FileMeta):
     def __init__(self, reader: S3FileReader):
         super().__init__()
         self.reader = reader
         self.__s3_obj = None
         self.bucket = reader.bucket
         self.path = reader.key
-
 
     def _get_metadata(self, key: str):
         if self.reader.lock and self.reader.lock.locked():
@@ -59,25 +58,25 @@ class S3File(File):
         self.version = version
 
 
-class S3Prefix(File):
-    def __init__(self, bucket, prefix):
+class S3PrefixFile(File):
+    def __init__(self, bucket:str, prefix:str):
         super().__init__()
         self.bucket = bucket
         self.prefix = prefix
 
 
-class S3SeekableStream(SeekableStream):
+class S3SeekableFileStream(SeekableFileStream):
     def __init__(self, file):
-        super().__init__(file, S3FileInfoCalculated(file))
+        super().__init__(file, S3FileInfo(file))
 
     @property
-    def meta(self) -> S3FileInfoCalculated:
-        return cast(S3FileInfoCalculated, super().meta)
+    def meta(self) -> S3FileInfo:
+        return cast(S3FileInfo, super().meta)
 
 
 class S3FileGenerator(FileStreamGenerator):
     def __init__(self,
-                 files: Iterable[Union[S3File, S3Prefix, Stream]],
+                 files: Iterable[Union[S3File, S3PrefixFile, FileStream]],
                  client,
                  resource,
                  bucket: Optional[str] = None):
@@ -88,7 +87,7 @@ class S3FileGenerator(FileStreamGenerator):
 
         # self.stats = Stats(self.__class__.__name__, 1)
 
-    def __iter__(self) -> Iterable[S3SeekableStream]:
+    def __iter__(self) -> Iterable[S3SeekableFileStream]:
         for source in self.files:
             try:
                 client, resource = self.client, self.resource
@@ -96,13 +95,13 @@ class S3FileGenerator(FileStreamGenerator):
                 if isinstance(source, S3File):
                     bucket, key, version = source.bucket, source.key, source.version
                     reader = S3FileReader(client, resource, bucket, key, version=version)
-                    yield S3SeekableStream(reader)
-                elif isinstance(source, S3Prefix):
+                    yield S3SeekableFileStream(reader)
+                elif isinstance(source, S3PrefixFile):
                     bucket, prefix = source.bucket, source.prefix
                     for o in list_objects(client, bucket, prefix):
                         reader = S3FileReader(client, resource, bucket, o['Key'])
-                        yield S3SeekableStream(reader)
-                elif isinstance(source, Stream):
+                        yield S3SeekableFileStream(reader)
+                elif isinstance(source, FileStream):
                     bucket = self.bucket
                     key = source.meta.path
                     mime, encoding = guess_mime(key)
@@ -124,7 +123,7 @@ class S3FileGenerator(FileStreamGenerator):
                     transfer_thread = Thread(target=transfer_thread, daemon=True, name=self.__class__.__name__)
                     transfer_thread.start()
 
-                    yield S3SeekableStream(reader)
+                    yield S3SeekableFileStream(reader)
                     transfer_thread.join()
 
             except Exception:

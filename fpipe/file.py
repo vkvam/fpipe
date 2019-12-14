@@ -1,24 +1,20 @@
 from abc import abstractmethod
-from concurrent.futures.thread import ThreadPoolExecutor
-
 from typing import Iterable, Optional
-
 from dataclasses import dataclass
 
 
 @dataclass
 class FileMeta:
+    """
+    describes a file
+    """
     path: str = None
 
 
-class FileMetaCalculated(FileMeta):
+class FileMetaCalculated:
     """
-    Class that calculates file info from a stream of bytes
+    abstract class for file-meta that is calculated
     """
-
-    def __init__(self, calculator: Optional['FileMetaCalculated'] = None):
-        self.calculator = calculator
-
     @abstractmethod
     def write(self, b: bytes):
         pass
@@ -36,7 +32,7 @@ class File:
         return self._meta
 
 
-class Stream(File):
+class FileStream(File):
     """
     A non seekable file-like
     """
@@ -50,7 +46,7 @@ class Stream(File):
         return self.__f
 
 
-class SeekableStream(Stream):
+class SeekableFileStream(FileStream):
     """
     A seekable file-like
     """
@@ -76,7 +72,7 @@ class FileStreamGenerator(FileGenerator):
     """
 
     @abstractmethod
-    def __iter__(self) -> Iterable[Stream]:
+    def __iter__(self) -> Iterable[FileStream]:
         pass
 
     def start(self):
@@ -84,3 +80,9 @@ class FileStreamGenerator(FileGenerator):
             read = f.file.read
             while read(2 ** 14):
                 pass
+
+
+
+class IncompatibleFileTypeException(Exception):
+    def __init__(self, _class):
+        pass

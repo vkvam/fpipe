@@ -1,8 +1,9 @@
-# fpipe
+# fPipe
 
-Framework for processing file-likes through chained pipes
+python framework for data manipulation and metadata extraction built around the python file-like api.
 
-## Installing
+
+### Installing
 
 
 Designed for python 3.7, for S3 support you need boto3
@@ -18,13 +19,14 @@ pip3 install boto3
 
 Example that reads a stream, calculates some file info, writes file to disk and prints the original stream to stdout
 ```python
+#!/usr/bin/env python3
 import io
-from fpipe.abstract import Stream, FileMeta
+from fpipe import FileStream, FileMeta
 from fpipe.fileinfo import FileInfoGenerator, CalculatedFileMeta
-from fpipe.local import LocalFileGenerator
+from fpipe.generators import LocalFileGenerator
 
 example_streams = (
-    Stream(
+    FileStream(
         io.BytesIO(
             bytes(f'{name}', encoding='utf-8') * 2 ** 6
         ),
@@ -61,6 +63,33 @@ twine check dist/*
 ```
 
 
+### Rationale
+NOTE: wip
+
+Unix pipes or chained python generators are ideal when the pipeline does not split and does not require metadata from previous steps.
+
+Working around these challenges may lead to unnecessary complication and caching.
+
+This framework's main intentions are to provide general solutions to the aforementioned challenges through a minimalistic and intuitive API. 
+
+
+
+### Design
+NOTE: wip
+
+The whole framework is built around 2 main concepts:
+- **class File**
+    - Base class for files
+- **class FileGenerator**
+    - Initialized with an iterable of Files and yields a different File 
+
+Files have 3 different type:
+- **class FilePointer(File)**: A pointer to a file that could be used to produce a FileStream
+- **class FileStream(File)**: File that produces a data stream
+- **class FileSeekableStream(FileStream)** File that produces a seekable stream
+ 
+In addition we have **class FileMeta** which provides meta-data often needed by FileGenerators to be able to generate files.  
+
 ## Built With
 
 * travis
@@ -71,9 +100,13 @@ twine check dist/*
 Bug-reports and pull requests on github  
 
 ## Versioning
+Any version change could break the public API (until 1.0.0 release)
+ 
 
-https://pypi.org/project/fpipe/#history
+[Pypi](https://pypi.org/project/fpipe/#history)
+
+[Github](https://github.com/vkvam/fpipe/releases)
 
 ## License
-
-This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details
+    
+This project is licensed under the MIT License - see the [LICENSE.txt](https://github.com/vkvam/fpipe/blob/master/LICENSE.txt) file for details

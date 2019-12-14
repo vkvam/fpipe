@@ -10,5 +10,4 @@ except DistributionNotFound:
 finally:
     del get_distribution, DistributionNotFound
 
-
-from .s3 import S3FileGenerator
+from .file import File, FileMeta, FileStream, SeekableFileStream

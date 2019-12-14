@@ -1,8 +1,8 @@
 import threading
-from typing import Generator, Iterable, cast
+from typing import Iterable, cast
 
-from .utils import BytesLoop, Stats
-from .abstract import Stream, File, FileMetaCalculated, FileMeta, FileStreamGenerator
+from .utils import BytesLoop
+from .file import FileStream, File, FileMetaCalculated, FileMeta, FileStreamGenerator
 import hashlib
 
 
@@ -20,7 +20,7 @@ class CalculatedFileMeta(FileMeta):
 
         self._checksum_md5 = None
 
-    def _write(self, b: bytes):
+    def write(self, b: bytes):
         self._size_count += len(b)
         self.__sig.update(b)
         if not b:
@@ -40,16 +40,16 @@ class CalculatedFileMeta(FileMeta):
         return self._size
 
 
-class FileInfoStream(Stream):
+class FileInfoStream(FileStream):
     @property
     def meta(self) -> CalculatedFileMeta:
         return cast(CalculatedFileMeta, super().meta)
 
 
 class FileInfoGenerator(FileStreamGenerator):
-    def __init__(self, files: Iterable[File], calculator: type(FileMetaCalculated)):
+    def __init__(self, files: Iterable[File], calculated_meta_type: type(FileMetaCalculated)):
         super().__init__(files)
-        self.calculator = calculator
+        self.calculated_meta_type = calculated_meta_type
         self.bufsize = 2 ** 14
 
     def __iter__(self) -> Iterable[FileInfoStream]:
@@ -58,10 +58,10 @@ class FileInfoGenerator(FileStreamGenerator):
             buf_size = self.bufsize
             # stats = Stats(self.__class__.__name__)
 
-            calculator = self.calculator()
+            file_meta_calculated = self.calculated_meta_type()
 
             def __process():
-                calc = calculator._write
+                calc = file_meta_calculated.write
                 while True:
                     b = source.file.read(buf_size)
                     # stats.r(b)
@@ -74,5 +74,5 @@ class FileInfoGenerator(FileStreamGenerator):
             proc_thread = threading.Thread(target=__process, name=f'{self.__class__.__name__}', daemon=True)
             proc_thread.start()
 
-            yield Stream(byte_loop, calculator, parent=source)
+            yield FileStream(byte_loop, file_meta_calculated, parent=source)
             proc_thread.join()

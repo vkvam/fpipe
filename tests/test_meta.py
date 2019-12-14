@@ -3,7 +3,7 @@ import hashlib
 from unittest import TestCase
 
 from fpipe.fileinfo import FileInfoGenerator, CalculatedFileMeta, FileInfoException
-from fpipe.process import ProcessFileGenerator
+from fpipe.generators import ProcessFileGenerator
 from test_utils.test_file import ReversibleTestFile, TestFileGenerator, TestStream
 
 

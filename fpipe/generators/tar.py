@@ -1,7 +1,7 @@
 import tarfile
-from typing import Generator, Iterable, cast
+from typing import Iterable, cast
 
-from .abstract import File, FileMeta, Stream, FileStreamGenerator
+from fpipe.file import File, FileMeta, FileStream, FileStreamGenerator
 
 
 class TarFileInfo(FileMeta):
@@ -51,7 +51,7 @@ class TarFile(File):
         super().__init__(TarFileInfo(tar_info))
 
 
-class TarStream(Stream):
+class TarFileStream(FileStream):
     def __init__(self, file, meta: TarFileInfo):
         super().__init__(file, meta)
 
@@ -61,16 +61,16 @@ class TarStream(Stream):
 
 
 class TarFileGenerator(FileStreamGenerator):
-    def __init__(self, files: Iterable[Stream]):
+    def __init__(self, files: Iterable[FileStream]):
         super().__init__(files)
 
-    def __iter__(self) -> Iterable[TarStream]:
+    def __iter__(self) -> Iterable[TarFileStream]:
         for source in self.files:
             try:
                 with tarfile.open(fileobj=source.file, mode='r|*') as tar_content_stream:
                     for tar_info in tar_content_stream:
                         tar_stream = tar_content_stream.extractfile(tar_info)
-                        yield TarStream(tar_stream, TarFileInfo(tar_info))
+                        yield TarFileStream(tar_stream, TarFileInfo(tar_info))
 
             except (FileNotFoundError, tarfile.TarError):
                 raise

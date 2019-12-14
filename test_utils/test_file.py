@@ -1,8 +1,7 @@
 import string
-from typing import Iterable, Generator, List
+from typing import Iterable
 
-from fpipe.abstract import Stream, FileGenerator
-from fpipe.local import LocalFileInfoCalculator
+from fpipe.file import FileStream, FileGenerator, FileMeta
 
 
 class TestFile:
@@ -37,9 +36,9 @@ class ReversibleTestFile(TestFile):
         return bytearray(self.letters[i % self.letter_count] for i in range(last_count, last_count + remaining))
 
 
-class TestStream(Stream):
+class TestStream(FileStream):
     def __init__(self, size, path, reversible=False):
-        super().__init__(ReversibleTestFile(size) if reversible else TestFile(size), LocalFileInfoCalculator(path))
+        super().__init__(ReversibleTestFile(size) if reversible else TestFile(size), FileMeta(path))
 
 
 class TestFileGenerator(FileGenerator):

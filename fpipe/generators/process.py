@@ -2,8 +2,8 @@ import subprocess
 import threading
 from typing import Iterable
 
-from .abstract import Stream, File, FileStreamGenerator
-from .utils import BytesLoop
+from fpipe.file import FileStream, File, FileStreamGenerator
+from fpipe.utils import BytesLoop
 
 
 class ProcessFileGenerator(FileStreamGenerator):
@@ -12,7 +12,7 @@ class ProcessFileGenerator(FileStreamGenerator):
         self.cmd = cmd
         self.byte_loop = BytesLoop(buf_size)
 
-    def __iter__(self) -> Iterable[Stream]:
+    def __iter__(self) -> Iterable[FileStream]:
         for source in self.files:
             buf_size = self.byte_loop.buf_size
             # stats = Stats(self.__class__.__name__)
@@ -50,7 +50,7 @@ class ProcessFileGenerator(FileStreamGenerator):
                 stdin_thread = threading.Thread(target=__std_in_to_cmd, name=f'{self.__class__.__name__} STD-OUT',
                                                 daemon=True)
                 stdin_thread.start()
-                yield Stream(self.byte_loop, parent=source)
+                yield FileStream(self.byte_loop, parent=source)
                 stdin_thread.join()
                 stdout_thread.join()
             # Should be non-problematic reusing the byte-loop since files are yielded sequentially
