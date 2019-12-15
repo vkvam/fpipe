@@ -1,1 +1,2 @@
-from .file import FileStream, File, FileMeta, FileStreamGenerator, SeekableFileStream, IncompatibleFileTypeException
+from .file import FileStream, File, FileMeta, FileStreamGenerator, SeekableFileStream, IncompatibleFileTypeException, \
+    Path

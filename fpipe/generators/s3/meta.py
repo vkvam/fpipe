@@ -1,7 +1,7 @@
 import datetime
 from typing import Generic, TypeVar
 from fpipe.file.filemeta import MetaStr
-from fpipe.fileinfo import FileInfoException
+from fpipe.generators.fileinfo import FileInfoException
 
 T = TypeVar('T')
 

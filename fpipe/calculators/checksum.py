@@ -1,6 +1,6 @@
 import hashlib
 
-from fpipe.fileinfo import FileInfoException, FileMetaCalculator
+from fpipe.generators.fileinfo import FileInfoException, FileMetaCalculator
 
 from fpipe.file.filemeta import MetaStr
 

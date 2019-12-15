@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from fpipe.calculators import MD5CheckSum
 from fpipe.file.file import Path
-from fpipe.fileinfo import FileInfoGenerator
+from fpipe.generators.fileinfo import FileInfoGenerator
 from fpipe.generators import FTPFileGenerator, FTPFile
 from fpipe.generators import ProcessFileGenerator
 from test_utils.ftp_server import TestFTPServer

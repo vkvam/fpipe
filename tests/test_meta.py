@@ -5,7 +5,7 @@ from unittest import TestCase
 from fpipe.calculators.checksum import MD5CheckSum
 from fpipe.calculators.size import SizeCalculated
 from fpipe.file.file import Path
-from fpipe.fileinfo import FileInfoGenerator, FileInfoException
+from fpipe.generators.fileinfo import FileInfoGenerator, FileInfoException
 from fpipe.generators import ProcessFileGenerator
 from test_utils.test_file import ReversibleTestFile, TestFileGenerator, TestStream
 

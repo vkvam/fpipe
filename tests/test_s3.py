@@ -1,13 +1,11 @@
 import datetime
 from copy import copy
-from time import sleep
 from unittest import TestCase
 
 from fpipe.calculators import SizeCalculated, MD5CheckSum
-from fpipe.fileinfo import FileInfoException, FileInfoGenerator
+from fpipe.generators.fileinfo import FileInfoException, FileInfoGenerator
 from moto import mock_s3, mock_iam, mock_config
-from fpipe.generators import S3FileGenerator, S3File, S3PrefixFile
-from fpipe.generators.s3_meta import S3Key, S3Version, S3Size, S3Mime, S3Modified
+from fpipe.generators import S3FileGenerator, S3File, S3PrefixFile, S3Key, S3Version, S3Size, S3Mime, S3Modified
 from test_utils.test_file import TestStream, TestFileGenerator
 
 

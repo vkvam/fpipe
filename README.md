@@ -2,9 +2,10 @@
 
 python framework for data manipulation and metadata extraction built around the python file-like api.
 
+*Disclaimer: framework is currently in Alpha, production use discouraged*
+
 
 ### Installing
-
 
 Designed for python 3.7, for S3 support you need boto3
 
@@ -21,28 +22,29 @@ Example that reads a stream, calculates some file info, writes file to disk and 
 ```python
 #!/usr/bin/env python3
 import io
-from fpipe import FileStream, FileMeta
-from fpipe.fileinfo import FileInfoGenerator, CalculatedFileMeta
-from fpipe.generators import LocalFileGenerator
+from fpipe import FileStream
+from fpipe.calculators import SizeCalculated, MD5CheckSum
+from fpipe.file import Path
+from fpipe.generators import FileInfoGenerator, LocalFileGenerator
 
 example_streams = (
     FileStream(
         io.BytesIO(
             bytes(f'{name}', encoding='utf-8') * 2 ** 6
         ),
-        FileMeta(f'{name}.file')
+        meta=[Path(f'{name}.file')]
     )
     for name in ('x', 'y', 'z')
 )
-gen = FileInfoGenerator(example_streams, CalculatedFileMeta)
-for f in LocalFileGenerator(gen, pass_through=True, pathname_resolver=lambda x: x.parent.meta.path):
-    print(f"Name: {f.parent.parent.meta.path}")
+gen = FileInfoGenerator(example_streams, [SizeCalculated, MD5CheckSum])
+for f in LocalFileGenerator(gen, pass_through=True, pathname_resolver=lambda x: x.meta(Path).value):
+    print(f"Name: {f.meta(Path)}")
     while True:
         b = f.file.read(2)
         print(b.decode('utf-8'), end='')
         if not b:
             break
-    print(f"\nChecksum: {f.parent.meta.checksum_md5}\n")
+    print(f"\nChecksum: {f.meta(MD5CheckSum).value}\n")
 ```
 
 See unittests for more examples

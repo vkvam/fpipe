@@ -1,9 +1,8 @@
-from threading import Thread, Lock, RLock
+from threading import Thread, Lock
 from typing import Iterable, Union, Optional
 
 from fpipe.file.file import Path
-from fpipe.fileinfo import FileInfoException
-from fpipe.generators.s3_meta import S3Version, S3Key, S3Size, S3Modified, S3Mime
+from .meta import S3Version, S3Key, S3Size, S3Modified, S3Mime
 from fpipe.utils.mime import guess_mime
 from fpipe.utils.s3 import list_objects
 from fpipe.file import File, FileStream, SeekableFileStream, FileMeta, FileStreamGenerator

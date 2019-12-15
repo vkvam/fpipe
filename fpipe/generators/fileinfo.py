@@ -3,8 +3,8 @@ from abc import abstractmethod
 from typing import Iterable, List
 
 from fpipe import FileMeta
-from .utils import BytesLoop
-from .file import FileStream, File, FileStreamGenerator
+from fpipe.utils import BytesLoop
+from fpipe.file import FileStream, File, FileStreamGenerator
 
 
 class FileMetaCalculator(FileMeta):
