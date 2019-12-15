@@ -3,7 +3,9 @@ import os
 
 from unittest import TestCase
 
-from fpipe.fileinfo import FileInfoGenerator, CalculatedFileMeta
+from fpipe.calculators import MD5CheckSum
+from fpipe.file.file import Path
+from fpipe.fileinfo import FileInfoGenerator
 from fpipe.generators import FTPFileGenerator, FTPFile
 from fpipe.generators import ProcessFileGenerator
 from test_utils.ftp_server import TestFTPServer
@@ -59,19 +61,19 @@ class TestFTP(TestCase):
             )
 
             # Calculate checksum of output
-            gen = FileInfoGenerator(gen, CalculatedFileMeta)
+            gen = FileInfoGenerator(gen, [MD5CheckSum])
 
             for file_out in gen:
                 content_out = file_out.file.read()
                 run_balance = False
 
-                with open(file_out.parent.parent.parent.parent.meta.path, 'rb') as f:
+                with open(file_out.meta(Path).value, 'rb') as f:
                     source_content = f.read()
                     md5 = hashlib.md5()
                     md5.update(source_content)
 
                     self.assertEqual(content_out, source_content)
-                    self.assertEqual(file_out.meta.checksum_md5, md5.hexdigest())
+                    self.assertEqual(file_out.meta(MD5CheckSum).value, md5.hexdigest())
                     run_balance = True
                 self.assertTrue(run_balance)
 

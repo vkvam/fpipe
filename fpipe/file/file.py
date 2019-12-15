@@ -1,35 +1,32 @@
 from abc import abstractmethod
-from typing import Iterable, Optional
-from dataclasses import dataclass
+from typing import Optional, Iterable, Type, List
+
+from fpipe.file.filemeta import FileMeta, MetaMap, T, MetaStr
 
 
-@dataclass
-class FileMeta:
-    """
-    describes a file
-    """
-    path: str = None
-
-
-class FileMetaCalculated:
-    """
-    abstract class for file-meta that is calculated
-    """
-    @abstractmethod
-    def write(self, b: bytes):
-        pass
+class Path(MetaStr):
+    pass
 
 
 class File:
     def __init__(self,
-                 meta: Optional[FileMeta] = None,
-                 parent: Optional['File'] = None):
-        self._meta = meta
+                 parent: Optional['File'] = None,
+                 meta: Optional[List[FileMeta]] = None):
         self.parent = parent
+        self.meta_map = MetaMap()
+        if meta:
+            for m in meta:
+                self.meta_map.set(m)
 
-    @property
-    def meta(self) -> FileMeta:
-        return self._meta
+    # def meta(self, item: Type[FileMeta]) -> FileMeta:
+    def meta(self, t: Type[T]) -> T:
+        obj: File = self
+        while obj is not None:
+            try:
+                return obj.meta_map[t]
+            except KeyError:
+                obj = obj.parent
+        raise KeyError(f"Not found {t}")
 
 
 class FileStream(File):
@@ -37,8 +34,11 @@ class FileStream(File):
     A non seekable file-like
     """
 
-    def __init__(self, file, meta: Optional[FileMeta] = None, parent: Optional['File'] = None):
-        super().__init__(meta=meta, parent=parent)
+    def __init__(self,
+                 file,
+                 parent: Optional['File'] = None,
+                 meta: Optional[List[FileMeta]] = None):
+        super().__init__(parent=parent, meta=meta)
         self.__f = file
 
     @property
@@ -80,7 +80,6 @@ class FileStreamGenerator(FileGenerator):
             read = f.file.read
             while read(2 ** 14):
                 pass
-
 
 
 class IncompatibleFileTypeException(Exception):

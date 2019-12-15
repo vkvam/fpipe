@@ -1,9 +1,13 @@
 import datetime
 from copy import copy
+from time import sleep
 from unittest import TestCase
-from fpipe.fileinfo import FileInfoException, FileInfoGenerator, CalculatedFileMeta
+
+from fpipe.calculators import SizeCalculated, MD5CheckSum
+from fpipe.fileinfo import FileInfoException, FileInfoGenerator
 from moto import mock_s3, mock_iam, mock_config
 from fpipe.generators import S3FileGenerator, S3File, S3PrefixFile
+from fpipe.generators.s3_meta import S3Key, S3Version, S3Size, S3Mime, S3Modified
 from test_utils.test_file import TestStream, TestFileGenerator
 
 
@@ -46,29 +50,25 @@ class TestS3(TestCase):
             bucket=bucket
         )
 
-        gen = FileInfoGenerator(gen, CalculatedFileMeta)
+        gen = FileInfoGenerator(gen, [SizeCalculated, MD5CheckSum])
         for f in gen:
             with self.assertRaises(FileInfoException):
                 # It is not possible to retrieve size from S3FileGenerator before object has been written
-                x = f.parent.meta.size
+                x = f.parent.meta(S3Size).value
             with self.assertRaises(FileInfoException):
                 # It is not possible to retrieve size from FileInfoGenerator before the complete stream has been read
-                x = f.meta.size
+                x = f.meta(MD5CheckSum).value
 
             cnt = f.file.read()
             test_stream.file.reset()
+            size_calc = f.meta(SizeCalculated).value
+            self.assertEqual(size_calc, size)
+            self.assertEqual(f.parent.meta(S3Mime).value, 'application/octet-stream')
 
-            self.assertEqual(f.meta.size, size)
-            self.assertEqual(f.parent.meta.mime, 'application/octet-stream')
-
-            self.assertEqual(f.parent.meta.size, size)
+            self.assertEqual(f.parent.meta(S3Size).value, size)
             self.assertEqual(cnt, test_stream.file.read())
-
-            # CalculatedFileMeta does not have the modified property
-            with self.assertRaises(AttributeError):
-                x = f.meta.modified
-            # But S3FileGenerator does
-            self.assertIsInstance(f.parent.meta.modified, datetime.datetime)
+            self.assertIsInstance(f.parent.meta(S3Modified).value, datetime.datetime)
+            self.assertIsInstance(f.meta(S3Modified).value, datetime.datetime)
 
     @mock_s3
     @mock_iam
@@ -107,12 +107,12 @@ class TestS3(TestCase):
         ]
 
         self.__create_objects(client, bucket, all_files)
-        gen = S3FileGenerator((S3File(bucket, key) for key, _ in all_files), client, resource)
+        gen = S3FileGenerator((S3File(bucket, S3Key(key)) for key, _ in all_files), client, resource)
 
         all_files_copy = copy(all_files)
         for f in gen:
             source_key, source_body = all_files_copy.pop(0)
-            self.assertEqual(source_key, f.meta.key)
+            self.assertEqual(source_key, f.meta(S3Key).value)
             self.assertEqual(f.file.read(), source_body)
         self.assertEqual(len(all_files_copy), 0)
 
@@ -145,13 +145,13 @@ class TestS3(TestCase):
             bucket=bucket
         )
 
-        versions = [[f.meta.key, f.file.read() and f.meta.version] for f in gen]
+        versions = [[f.meta(S3Key), f.file.read() and f.meta(S3Version)] for f in gen]
 
         # Horrible hack since moto does not return VersionId for multipart uploads
         for idx, version in enumerate(resource.Bucket(bucket).object_versions.filter(Prefix='xyz')):
             obj = version.get()
             version = obj.get('VersionId')
-            versions[idx][1] = version
+            versions[idx][1] = S3Version(version)
 
         s3_files = [S3File(bucket, key, version) for key, version in versions]
 
@@ -164,7 +164,7 @@ class TestS3(TestCase):
 
         for f in gen:
             content = f.file.read()
-            self.assertEqual(f.meta.version, versions.pop(0)[1])
+            self.assertEqual(f.meta(S3Version).value, versions.pop(0)[1].value)
             t_stream = test_streams.pop(0)
             t_stream.file.reset()
             self.assertEqual(content, t_stream.file.read())

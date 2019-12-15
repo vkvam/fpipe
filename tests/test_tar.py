@@ -4,9 +4,12 @@ from unittest import TestCase
 
 from typing import Tuple
 
+from fpipe.calculators import Size
 from fpipe.file import FileStream
-from fpipe.generators import ProcessFileGenerator
+from fpipe.file.file import Path
+from fpipe.generators import ProcessFileGenerator, TarFileInfo
 from fpipe.generators import TarFileGenerator
+from fpipe.generators.tar import ModifiedTar
 from test_utils.test_file import ReversibleTestFile
 
 FILE_NAME = "test.json"
@@ -52,7 +55,7 @@ class TestTar(TestCase):
         for f in proc:
             source_content, source_path, source_size, source_time = source_file_content.pop(0)
             self.assertEqual(source_content, f.file.read())
-            self.assertEqual(source_path, f.meta.path)
-            self.assertEqual(source_size, f.meta.size)
-            self.assertEqual(source_time, f.meta.mtime)
+            self.assertEqual(source_path, f.meta(Path).value)
+            self.assertEqual(source_size, f.meta(Size).value)
+            self.assertEqual(source_time, f.meta(ModifiedTar).value)
         self.assertEqual(len(source_file_content), 0)

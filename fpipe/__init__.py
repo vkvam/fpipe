@@ -10,4 +10,4 @@ except DistributionNotFound:
 finally:
     del get_distribution, DistributionNotFound
 
-from .file import File, FileMeta, FileStream, SeekableFileStream
+from .file import File, FileMeta, FileStream

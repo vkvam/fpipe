@@ -15,6 +15,7 @@ class S3FileReader(object):
                  cache_size=2 ** 21,
                  cache_chunk_count_limit=16,
                  lock: Optional[threading.Lock] = None,
+                 meta_lock: Optional[threading.Lock] = None,
                  version: Optional[str] = None):
         self.s3_client = s3_client
         self.s3_resource = s3_resource
@@ -26,7 +27,7 @@ class S3FileReader(object):
         self.cache_chunk_size = cache_size
         self.cache_chunk_count_limit = cache_chunk_count_limit
 
-        self.bytes_recieved = 0
+        self.bytes_received = 0
         self.chunk_lookups = 0
         self._size = 0
 
@@ -34,10 +35,14 @@ class S3FileReader(object):
         self.cache_chunks = []
         self.last_chunk = None
         self.offset = 0
-        self.lock = lock
+        self.read_lock = lock
+        self.meta_lock = meta_lock
 
-        if self.lock:
-            self.lock.acquire()
+        if self.meta_lock:
+            self.meta_lock.acquire()
+
+        if self.read_lock:
+            self.read_lock.acquire()
         else:
             self.__initialize()
 
@@ -79,12 +84,20 @@ class S3FileReader(object):
         else:
             raise Exception("Invalid whence")
 
+    def release(self):
+        self.read_lock.release()
+
     def read(self, count=-1):
-        if self.lock and self.lock.locked():
-            # Wait until object has been written
-            self.lock.acquire()
+        # Mechanism to wait until object is available
+        if self.read_lock and self.read_lock.locked():
+            self.read_lock.acquire()
             self.__initialize()
-            self.lock = None
+            self.read_lock = None
+
+        # Once lock is released we can release metadata
+        if self.meta_lock:
+            self.meta_lock.release()
+            self.meta_lock = None
 
         end = self.size()
         if count > 0:
@@ -144,5 +157,5 @@ class S3FileReader(object):
         chunk = (chunk_start, response['Body'].read())
         self.cache_chunks.append(chunk)
 
-        self.bytes_recieved += chunk_end - chunk_start + 1
+        self.bytes_received += chunk_end - chunk_start + 1
         return chunk

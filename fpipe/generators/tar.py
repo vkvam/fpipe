@@ -1,7 +1,15 @@
 import tarfile
-from typing import Iterable, cast
+from typing import Iterable
 
+from fpipe.calculators import Size
 from fpipe.file import File, FileMeta, FileStream, FileStreamGenerator
+from fpipe.file.file import Path
+from fpipe.file.filemeta import MetaStr, MetaInt
+
+
+# TODO: Merge with S3Modified
+class ModifiedTar(MetaInt):
+    pass
 
 
 class TarFileInfo(FileMeta):
@@ -47,17 +55,19 @@ class TarFileInfo(FileMeta):
 
 
 class TarFile(File):
-    def __init__(self, tar_info: tarfile.TarInfo):
-        super().__init__(TarFileInfo(tar_info))
+    def __init__(self):
+        super().__init__()
+        # TarFileInfo(tar_info)
 
 
 class TarFileStream(FileStream):
-    def __init__(self, file, meta: TarFileInfo):
-        super().__init__(file, meta)
-
-    @property
-    def meta(self) -> TarFileInfo:
-        return cast(TarFileInfo, super().meta)
+    def __init__(self, file, info: tarfile.TarInfo):
+        super().__init__(file, meta=[
+            Path(info.path),
+            Size(info.size),
+            ModifiedTar(info.mtime)
+            # TODO: Rest
+        ])
 
 
 class TarFileGenerator(FileStreamGenerator):
@@ -70,7 +80,7 @@ class TarFileGenerator(FileStreamGenerator):
                 with tarfile.open(fileobj=source.file, mode='r|*') as tar_content_stream:
                     for tar_info in tar_content_stream:
                         tar_stream = tar_content_stream.extractfile(tar_info)
-                        yield TarFileStream(tar_stream, TarFileInfo(tar_info))
+                        yield TarFileStream(tar_stream, tar_info)
 
             except (FileNotFoundError, tarfile.TarError):
                 raise

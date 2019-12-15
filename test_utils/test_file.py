@@ -1,7 +1,8 @@
 import string
 from typing import Iterable
 
-from fpipe.file import FileStream, FileGenerator, FileMeta
+from fpipe.file import FileStream, FileStreamGenerator
+from fpipe.file.file import Path
 
 
 class TestFile:
@@ -38,10 +39,10 @@ class ReversibleTestFile(TestFile):
 
 class TestStream(FileStream):
     def __init__(self, size, path, reversible=False):
-        super().__init__(ReversibleTestFile(size) if reversible else TestFile(size), FileMeta(path))
+        super().__init__(ReversibleTestFile(size) if reversible else TestFile(size), meta=[Path(path)])
 
 
-class TestFileGenerator(FileGenerator):
+class TestFileGenerator(FileStreamGenerator):
     def __init__(self, files: Iterable[TestStream]):
         super().__init__(files)
 
