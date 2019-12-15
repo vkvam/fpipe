@@ -20,12 +20,14 @@ pip3 install boto3
 
 Example that reads a stream, calculates some file info, writes file to disk and prints the original stream to stdout
 ```python
-#!/usr/bin/env python3
 import io
-from fpipe import FileStream
-from fpipe.calculators import SizeCalculated, MD5CheckSum
-from fpipe.file import Path
-from fpipe.generators import FileInfoGenerator, LocalFileGenerator
+
+from fpipe.file import FileStream
+from fpipe.generators.fileinfo import FileInfoGenerator
+from fpipe.generators.local import LocalFileGenerator
+from fpipe.meta.path import Path
+from fpipe.meta.checksum import MD5CheckSum
+from fpipe.meta.size import SizeCalculated
 
 example_streams = (
     FileStream(

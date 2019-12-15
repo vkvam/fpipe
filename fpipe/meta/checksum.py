@@ -1,15 +1,14 @@
 import hashlib
 
-from fpipe.generators.fileinfo import FileInfoException, FileMetaCalculator
+from fpipe.generators.fileinfo import FileInfoException
+from fpipe.meta.abstract import FileMeta
 
-from fpipe.file.filemeta import MetaStr
 
-
-class MD5CheckSum(MetaStr, FileMetaCalculator):
+class MD5CheckSum(FileMeta[str]):
     def __init__(self):
-        super().__init__('')
         self.__sig = hashlib.md5()
         self.done = False
+        self.v: str = ''
 
     def write(self, b: bytes):
         self.__sig.update(b)

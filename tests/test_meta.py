@@ -2,11 +2,11 @@ import hashlib
 
 from unittest import TestCase
 
-from fpipe.calculators.checksum import MD5CheckSum
-from fpipe.calculators.size import SizeCalculated
-from fpipe.file.file import Path
+from fpipe.generators.process import ProcessFileGenerator
+from fpipe.meta.checksum import MD5CheckSum
+from fpipe.meta.path import Path
+from fpipe.meta.size import SizeCalculated
 from fpipe.generators.fileinfo import FileInfoGenerator, FileInfoException
-from fpipe.generators import ProcessFileGenerator
 from test_utils.test_file import ReversibleTestFile, TestFileGenerator, TestStream
 
 

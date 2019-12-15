@@ -4,12 +4,11 @@ from unittest import TestCase
 
 from typing import Tuple
 
-from fpipe.calculators import Size
 from fpipe.file import FileStream
-from fpipe.file.file import Path
-from fpipe.generators import ProcessFileGenerator, TarFileInfo
-from fpipe.generators import TarFileGenerator
-from fpipe.generators.tar import ModifiedTar
+from fpipe.generators.process import ProcessFileGenerator
+from fpipe.generators.tar import ModifiedTar, TarFileGenerator
+from fpipe.meta.path import Path
+from fpipe.meta.size import Size
 from test_utils.test_file import ReversibleTestFile
 
 FILE_NAME = "test.json"

@@ -1,12 +1,12 @@
 import datetime
 from typing import Generic, TypeVar
-from fpipe.file.filemeta import MetaStr
 from fpipe.generators.fileinfo import FileInfoException
+from fpipe.meta.abstract import FileMeta, FileMetaValue
 
 T = TypeVar('T')
 
 
-class MetaGetter(Generic[T]):
+class MetaGetter(FileMeta[T]):
     def __init__(self, getter, lock):
         self.getter = getter
         self.lock = lock
@@ -32,9 +32,9 @@ class S3Mime(MetaGetter[str]):
 
 
 # From S3File
-class S3Version(MetaStr):
+class S3Version(FileMetaValue[str]):
     pass
 
 
-class S3Key(MetaStr):
+class S3Key(FileMetaValue[str]):
     pass

@@ -2,7 +2,8 @@ import ftplib
 import logging
 import socket
 import threading
-from . import BytesLoop
+
+from fpipe.utils.bytesloop import BytesLoop
 
 
 class FTPClient(object):

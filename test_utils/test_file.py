@@ -1,8 +1,9 @@
 import string
 from typing import Iterable
 
-from fpipe.file import FileStream, FileStreamGenerator
-from fpipe.file.file import Path
+from fpipe.file import FileStream
+from fpipe.generators.abstract import FileStreamGenerator
+from fpipe.meta.path import Path
 
 
 class TestFile:

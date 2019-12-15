@@ -1,17 +1,15 @@
 from fpipe.generators.fileinfo import FileInfoException, FileMetaCalculator
+from fpipe.meta.abstract import FileMetaValue
 
-from fpipe.file.filemeta import MetaInt
 
-
-# TODO:  Move to somewhere more general
-class Size(MetaInt):
+class Size(FileMetaValue[int]):
     pass
 
 
-class SizeCalculated(Size, FileMetaCalculator):
+class SizeCalculated(FileMetaCalculator[int]):
     def __init__(self):
-        super().__init__(0)
         self.done = False
+        self.v = 0
 
     def write(self, b: bytes):
         self.v += len(b)

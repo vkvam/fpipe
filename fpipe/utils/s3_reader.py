@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import math
-from typing import Optional
+from typing import Optional, List, Tuple
 
 import threading
 
@@ -32,7 +32,7 @@ class S3FileReader(object):
         self._size = 0
 
         # Cache blocks that each contain a byte-range of the object limited in size by by cache_chunk_size.
-        self.cache_chunks = []
+        self.cache_chunks: List[Tuple[int, bytes]] = []
         self.last_chunk = None
         self.offset = 0
         self.read_lock = lock

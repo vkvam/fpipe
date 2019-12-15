@@ -1,15 +1,15 @@
 import threading
 from abc import abstractmethod
-from typing import Iterable, List
+from typing import Iterable, List, Type, Optional
 
-from fpipe import FileMeta
-from fpipe.utils import BytesLoop
-from fpipe.file import FileStream, File, FileStreamGenerator
+from fpipe.generators.abstract import FileStreamGenerator
+from fpipe.meta.abstract import FileMeta, T
+from fpipe.utils.bytesloop import BytesLoop
+from fpipe.file import FileStream, File
 
 
-class FileMetaCalculator(FileMeta):
-    def __init__(self):
-        pass
+# TODO: Break up FileMeta into one with value
+class FileMetaCalculator(FileMeta[T]):
 
     @abstractmethod
     def write(self, b: bytes):
@@ -21,7 +21,7 @@ class FileInfoException(Exception):
 
 
 class FileInfoGenerator(FileStreamGenerator):
-    def __init__(self, files: Iterable[File], file_meta_calculators: List[type(FileMetaCalculator)]):
+    def __init__(self, files: Iterable[File], file_meta_calculators: List[Type[FileMetaCalculator]]):
         super().__init__(files)
         self.file_meta_calculators = file_meta_calculators
         self.bufsize = 2 ** 14
@@ -36,8 +36,9 @@ class FileInfoGenerator(FileStreamGenerator):
             def __process():
                 while True:
                     b = source.file.read(buf_size)
-                    for c in calc_calls:
-                        c(b)
+                    if calc_calls:
+                        for c in calc_calls:
+                            c(b)
 
                     byte_loop.write(b)
                     if not b:  # EOF

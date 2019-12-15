@@ -1,8 +1,8 @@
 from typing import Iterable
 
-from fpipe.file.file import Path
-from fpipe.utils import FTPClient
-from fpipe.file import FileStream, File, FileStreamGenerator, FileMeta
+from fpipe.meta.path import Path
+from fpipe.utils.ftp import FTPClient
+from fpipe.generators.abstract import FileStreamGenerator, File, FileStream
 
 
 class FTPFile(File):

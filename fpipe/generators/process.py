@@ -2,8 +2,9 @@ import subprocess
 import threading
 from typing import Iterable
 
-from fpipe.file import FileStream, File, FileStreamGenerator
-from fpipe.utils import BytesLoop
+from fpipe.file import FileStream, File
+from fpipe.generators.abstract import FileStreamGenerator
+from fpipe.utils.bytesloop import BytesLoop
 
 
 class ProcessFileGenerator(FileStreamGenerator):
