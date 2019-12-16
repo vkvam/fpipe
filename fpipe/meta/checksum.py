@@ -1,10 +1,9 @@
 import hashlib
 
-from fpipe.generators.fileinfo import FileInfoException
-from fpipe.meta.abstract import FileMeta
+from fpipe.generators.fileinfo import FileInfoException, FileMetaCalculator
 
 
-class MD5CheckSum(FileMeta[str]):
+class MD5Calculated(FileMetaCalculator[str]):
     def __init__(self):
         self.__sig = hashlib.md5()
         self.done = False

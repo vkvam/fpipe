@@ -5,7 +5,7 @@ from unittest import TestCase
 from fpipe.generators.fileinfo import FileInfoException, FileInfoGenerator
 from moto import mock_s3, mock_iam, mock_config
 from fpipe.generators.s3 import S3FileGenerator, S3File, S3PrefixFile, S3Key, S3Version, S3Size, S3Mime, S3Modified
-from fpipe.meta.checksum import MD5CheckSum
+from fpipe.meta.checksum import MD5Calculated
 from fpipe.meta.size import SizeCalculated
 from test_utils.test_file import TestStream, TestFileGenerator
 
@@ -49,14 +49,14 @@ class TestS3(TestCase):
             bucket=bucket
         )
 
-        gen = FileInfoGenerator(gen, [SizeCalculated, MD5CheckSum])
+        gen = FileInfoGenerator(gen, [SizeCalculated, MD5Calculated])
         for f in gen:
             with self.assertRaises(FileInfoException):
                 # It is not possible to retrieve size from S3FileGenerator before object has been written
                 x = f.parent.meta(S3Size).value
             with self.assertRaises(FileInfoException):
                 # It is not possible to retrieve size from FileInfoGenerator before the complete stream has been read
-                x = f.meta(MD5CheckSum).value
+                x = f.meta(MD5Calculated).value
 
             cnt = f.file.read()
             test_stream.file.reset()

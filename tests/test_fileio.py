@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from fpipe.meta.size import SizeCalculated
-from fpipe.meta.checksum import MD5CheckSum
+from fpipe.meta.checksum import MD5Calculated
 from fpipe.generators.fileinfo import FileInfoGenerator, FileInfoException
 from fpipe.generators.process import ProcessFileGenerator
 from test_utils.test_file import TestStream, TestFileGenerator
@@ -25,16 +25,16 @@ class TestFileIO(TestCase):
             "cat /dev/stdin"
         )
 
-        for file in FileInfoGenerator(gen, [SizeCalculated, MD5CheckSum]):
+        for file in FileInfoGenerator(gen, [SizeCalculated, MD5Calculated]):
 
             with self.assertRaises(FileInfoException):
                 x = file.meta(SizeCalculated).value
 
             with self.assertRaises(FileInfoException):
-                x = file.meta(MD5CheckSum).value
+                x = file.meta(MD5Calculated).value
 
             while file.file.read(2 ** 20):
                 ...
 
             self.assertEqual(file.meta(SizeCalculated).value, size)
-            self.assertNotEqual(file.meta(MD5CheckSum).value, '')
+            self.assertNotEqual(file.meta(MD5Calculated).value, '')

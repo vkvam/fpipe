@@ -6,7 +6,7 @@ from unittest import TestCase
 from fpipe.generators.fileinfo import FileInfoGenerator
 from fpipe.generators.ftp import FTPFileGenerator, FTPFile
 from fpipe.generators.process import ProcessFileGenerator
-from fpipe.meta.checksum import MD5CheckSum
+from fpipe.meta.checksum import MD5Calculated
 from fpipe.meta.path import Path
 from test_utils.ftp_server import TestFTPServer
 
@@ -26,7 +26,7 @@ class TestFTP(TestCase):
         files_in = {
             f"temp_{size}.testfile": size
             for size in (
-                2 ** x for x in range(20, 23)
+                2 ** x for x in range(20, 24)
             )
         }
 
@@ -49,19 +49,23 @@ class TestFTP(TestCase):
                 ) for path in files_in.keys()
             )
 
+            # Checksum of input
+            gen = FileInfoGenerator(gen, [MD5Calculated])
+
             # Encrypt and decrypt
             gen = ProcessFileGenerator(
-                gen,
-                "gpg --batch --symmetric --passphrase 'X'"
+                gen, "gpg --batch --symmetric --passphrase 'X'"
             )
+
+            # # Checksum of encrypted
+            gen = FileInfoGenerator(gen, [MD5Calculated])
 
             gen = ProcessFileGenerator(
-                gen,
-                "gpg --batch --decrypt --passphrase 'X'"
+                gen, "gpg --batch --decrypt --passphrase 'X'"
             )
 
-            # Calculate checksum of output
-            gen = FileInfoGenerator(gen, [MD5CheckSum])
+            # # Checksum of decrypted
+            gen = FileInfoGenerator(gen, [MD5Calculated])
 
             for file_out in gen:
                 content_out = file_out.file.read()
@@ -72,8 +76,16 @@ class TestFTP(TestCase):
                     md5 = hashlib.md5()
                     md5.update(source_content)
 
+                    # Source and output are equal
                     self.assertEqual(content_out, source_content)
-                    self.assertEqual(file_out.meta(MD5CheckSum).value, md5.hexdigest())
+
+                    # Source file
+                    self.assertEqual(file_out.parent.parent.parent.parent.meta(MD5Calculated).value, md5.hexdigest())
+                    # Encrypted file
+                    self.assertNotEqual(file_out.parent.parent.meta(MD5Calculated).value, md5.hexdigest())
+                    # Decrypted file
+                    self.assertEqual(file_out.meta(MD5Calculated).value, md5.hexdigest())
+
                     run_balance = True
                 self.assertTrue(run_balance)
 

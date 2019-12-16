@@ -26,27 +26,23 @@ from fpipe.file import FileStream
 from fpipe.generators.fileinfo import FileInfoGenerator
 from fpipe.generators.local import LocalFileGenerator
 from fpipe.meta.path import Path
-from fpipe.meta.checksum import MD5CheckSum
+from fpipe.meta.checksum import MD5Calculated
 from fpipe.meta.size import SizeCalculated
 
 example_streams = (
     FileStream(
-        io.BytesIO(
-            bytes(f'{name}', encoding='utf-8') * 2 ** 6
-        ),
-        meta=[Path(f'{name}.file')]
+        io.BytesIO(bytes(name * 2 ** size, encoding='utf-8')), meta=[Path(f"{name}.txt")]
     )
-    for name in ('x', 'y', 'z')
+    for name, size in (('x', 4), ('y', 5), ('z', 6))
 )
-gen = FileInfoGenerator(example_streams, [SizeCalculated, MD5CheckSum])
+gen = FileInfoGenerator(example_streams, [SizeCalculated, MD5Calculated])
 for f in LocalFileGenerator(gen, pass_through=True, pathname_resolver=lambda x: x.meta(Path).value):
-    print(f"Name: {f.meta(Path)}")
-    while True:
-        b = f.file.read(2)
-        print(b.decode('utf-8'), end='')
-        if not b:
-            break
-    print(f"\nChecksum: {f.meta(MD5CheckSum).value}\n")
+    print(
+        f"\n{'name:':<{10}}{f.meta(Path).value}"
+        f"\n{'content:':<{10}}{f.file.read().decode('utf-8')}", end=''
+        f"\n{'md5:':<{10}}{f.meta(MD5Calculated).value}"
+        f"\n{'size:':<{10}}{f.meta(SizeCalculated).value}\n"
+    )
 ```
 
 See unittests for more examples
