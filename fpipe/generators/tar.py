@@ -1,12 +1,11 @@
 import tarfile
 from typing import Iterable
 
-from fpipe.meta.abstract import FileMetaValue
-from fpipe.meta.size import Size
-from fpipe.meta.path import Path
 from fpipe.file import File, FileStream
 from fpipe.generators.abstract import FileStreamGenerator
-from tarfile import TarInfo
+from fpipe.meta.abstract import FileMetaValue
+from fpipe.meta.path import Path
+from fpipe.meta.size import Size
 
 
 # TODO: Merge with S3Modified

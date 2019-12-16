@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 
 import math
-from typing import Optional, List, Tuple
-
 import threading
+from typing import Optional, List, Tuple, IO, Iterator, AnyStr, Iterable
 
 
-class S3FileReader(object):
+class S3FileReader(IO[bytes]):
     def __init__(self,
                  s3_client,
                  s3_resource,
@@ -159,3 +158,46 @@ class S3FileReader(object):
 
         self.bytes_received += chunk_end - chunk_start + 1
         return chunk
+
+    # TODO: Fix all under
+    def close(self) -> None:
+        pass
+
+    def fileno(self) -> int:
+        pass
+
+    def flush(self) -> None:
+        pass
+
+    def isatty(self) -> bool:
+        pass
+
+    def readable(self) -> bool:
+        pass
+
+    def readline(self, limit: int = ...) -> AnyStr:
+        pass
+
+    def readlines(self, hint: int = ...) -> List[AnyStr]:
+        pass
+
+    def seekable(self) -> bool:
+        pass
+
+    def truncate(self, size: Optional[int] = ...) -> int:
+        pass
+
+    def writable(self) -> bool:
+        pass
+
+    def write(self, s: AnyStr) -> int:
+        pass
+
+    def writelines(self, lines: Iterable[AnyStr]) -> None:
+        pass
+
+    def __next__(self) -> AnyStr:
+        pass
+
+    def __iter__(self) -> Iterator[AnyStr]:
+        pass

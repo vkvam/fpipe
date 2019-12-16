@@ -1,14 +1,14 @@
 from threading import Thread, Lock
 from typing import Iterable, Union, Optional
 
+from fpipe.file import File, FileStream, SeekableFileStream, FileMeta
 from fpipe.generators.abstract import FileStreamGenerator
 from fpipe.meta.path import Path
-from .meta import S3Version, S3Key, S3Size, S3Modified, S3Mime
 from fpipe.utils.mime import guess_mime
 from fpipe.utils.s3 import list_objects
-from fpipe.file import File, FileStream, SeekableFileStream, FileMeta
 from fpipe.utils.s3_reader import S3FileReader
 from fpipe.utils.s3_write import S3FileWriter
+from .meta import S3Version, S3Key, S3Size, S3Modified, S3Mime
 
 
 class S3FileInfo:
@@ -55,7 +55,7 @@ class S3PrefixFile(File):
 
 
 class S3SeekableFileStream(SeekableFileStream):
-    def __init__(self, file):
+    def __init__(self, file: S3FileReader):
         info = S3FileInfo(file)
         super().__init__(file, meta=list(info.meta_gen()))
 

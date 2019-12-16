@@ -1,11 +1,11 @@
 import threading
 from abc import abstractmethod
-from typing import Iterable, List, Type, Optional
+from typing import Iterable, Type
 
+from fpipe.file import FileStream, File
 from fpipe.generators.abstract import FileStreamGenerator
 from fpipe.meta.abstract import FileMeta, T
 from fpipe.utils.bytesloop import BytesLoop
-from fpipe.file import FileStream, File
 
 
 # TODO: Break up FileMeta into one with value
@@ -21,7 +21,7 @@ class FileInfoException(Exception):
 
 
 class FileInfoGenerator(FileStreamGenerator):
-    def __init__(self, files: Iterable[File], file_meta_calculators: List[Type[FileMetaCalculator]]):
+    def __init__(self, files: Iterable[File], file_meta_calculators: Iterable[Type[FileMetaCalculator]]):
         super().__init__(files)
         self.file_meta_calculators = file_meta_calculators
         self.bufsize = 2 ** 14

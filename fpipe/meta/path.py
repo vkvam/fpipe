@@ -1,4 +1,4 @@
-from fpipe.meta.abstract import FileMeta, FileMetaValue
+from fpipe.meta.abstract import FileMetaValue
 
 
 class Path(FileMetaValue[str]):

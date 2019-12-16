@@ -1,4 +1,4 @@
-from typing import Optional, Type, List, IO, BinaryIO, Union, Iterable
+from typing import Optional, Type, IO, Iterable
 
 from fpipe.meta.abstract import FileMeta, MetaMap, T
 

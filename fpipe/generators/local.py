@@ -1,15 +1,15 @@
 import threading
 from typing import Union, Iterable, Callable
 
-from fpipe.meta.path import Path
-from fpipe.utils.bytesloop import BytesLoop
 from fpipe.file import File, FileStream, SeekableFileStream, FileMeta
 from fpipe.generators.abstract import FileStreamGenerator, IncompatibleFileTypeException
+from fpipe.meta.path import Path
+from fpipe.utils.bytesloop import BytesLoop
 
 
 class LocalFile(File):
     def __init__(self, path):
-        super().__init__(meta=[FileMeta(path)])
+        super().__init__(meta=[Path(path)])
 
 
 class LocalFileGenerator(FileStreamGenerator):
@@ -33,7 +33,10 @@ class LocalFileGenerator(FileStreamGenerator):
                         yield SeekableFileStream(f, parent=source)
                 elif isinstance(source, FileStream):
                     def __process(byte_loop=None):
-                        path_name = self.pathname_resolver(source) if self.pathname_resolver else source.meta.path
+                        path_name = self.pathname_resolver(
+                            source
+                        ) if self.pathname_resolver else source.meta(Path).value
+
                         with open(path_name, 'wb') as f2:
                             while True:
                                 b = source.file.read(2 ** 14)

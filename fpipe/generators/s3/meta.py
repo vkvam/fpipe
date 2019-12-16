@@ -1,5 +1,6 @@
 import datetime
-from typing import Generic, TypeVar
+from typing import TypeVar
+
 from fpipe.generators.fileinfo import FileInfoException
 from fpipe.meta.abstract import FileMeta, FileMetaValue
 

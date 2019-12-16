@@ -2,13 +2,15 @@ import hashlib
 import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from typing import IO, Iterator, AnyStr, Iterable, Optional, List
 
 import gc
 
 DEFAULT_BLOCK_SIZE = 8 * 2 ** 20
 
 
-class S3FileWriter(ThreadPoolExecutor):
+class S3FileWriter(IO[bytes], ThreadPoolExecutor):
+
     def __init__(self,
                  s3_client,
                  bucket,
@@ -177,6 +179,52 @@ class Buffer(object):
     def reset(self):
         del self.buffer[:]
         self.part_number = 1
+
+    # TODO: Fix all under
+    def fileno(self) -> int:
+        pass
+
+    def flush(self) -> None:
+        pass
+
+    def isatty(self) -> bool:
+        pass
+
+    def read(self, n: int = ...) -> AnyStr:
+        pass
+
+    def readable(self) -> bool:
+        pass
+
+    def readline(self, limit: int = ...) -> AnyStr:
+        pass
+
+    def readlines(self, hint: int = ...) -> List[AnyStr]:
+        pass
+
+    def seek(self, offset: int, whence: int = ...) -> int:
+        pass
+
+    def seekable(self) -> bool:
+        pass
+
+    def tell(self) -> int:
+        pass
+
+    def truncate(self, size: Optional[int] = ...) -> int:
+        pass
+
+    def writable(self) -> bool:
+        pass
+
+    def writelines(self, lines: Iterable[AnyStr]) -> None:
+        pass
+
+    def __next__(self) -> AnyStr:
+        pass
+
+    def __iter__(self) -> Iterator[AnyStr]:
+        pass
 
 
 class S3FileProgress(object):
