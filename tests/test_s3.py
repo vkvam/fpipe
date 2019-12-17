@@ -131,6 +131,44 @@ class TestS3(TestCase):
     @mock_s3
     @mock_iam
     @mock_config
+    def test_s3_seek(self):
+        client, resource, bucket = self.__init_s3()
+
+        test_streams = [
+            TestStream(2 ** 20, 'xyz', reversible=True)
+        ]
+        signal = False
+        for f in S3FileGenerator(test_streams,
+                                 client,
+                                 resource,
+                                 bucket=bucket,
+                                 seekable=True
+                                 ):
+            test_file = f.parent.file
+            s3_file = f.file
+
+            length = 8
+            s3_file.seek(2 ** 20 - length)
+            s3_content = s3_file.read()
+            test_file.seek(2 ** 20 - length)
+            test_file_content = test_file.read()
+
+            self.assertEqual(len(s3_content), length)
+            self.assertEqual(s3_content, test_file_content)
+
+            s3_file.seek(0)
+            s3_content = s3_file.read(length)
+            test_file.seek(0)
+            test_file_content = test_file.read(length)
+
+            self.assertEqual(len(s3_content), length)
+            self.assertEqual(s3_content, test_file_content)
+            signal = True
+        self.assertTrue(signal)
+
+    @mock_s3
+    @mock_iam
+    @mock_config
     def test_bucket_versioning(self):
         client, resource, bucket = self.__init_s3()
         client.put_bucket_versioning(

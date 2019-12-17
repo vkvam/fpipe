@@ -55,9 +55,9 @@ class S3PrefixFile(File):
 
 
 class S3SeekableFileStream(SeekableFileStream):
-    def __init__(self, file: S3FileReader):
+    def __init__(self, file: S3FileReader, parent=None):
         info = S3FileInfo(file)
-        super().__init__(file, meta=list(info.meta_gen()))
+        super().__init__(file, meta=list(info.meta_gen()), parent=parent)
 
 
 class S3FileGenerator(FileStreamGenerator):
@@ -89,12 +89,12 @@ class S3FileGenerator(FileStreamGenerator):
                                       key.value,
                                       version=version.value if version else None,
                                       seekable=self.seekable) as reader:
-                        yield S3SeekableFileStream(reader)
+                        yield S3SeekableFileStream(reader, parent=source)
                 elif isinstance(source, S3PrefixFile):
                     bucket, prefix = source.bucket, source.prefix
                     for o in list_objects(client, bucket, prefix):
                         with S3FileReader(client, resource, bucket, o['Key'], seekable=self.seekable) as reader:
-                            yield S3SeekableFileStream(reader)
+                            yield S3SeekableFileStream(reader, parent=source)
                 elif isinstance(source, FileStream) and self.bucket:
                     bucket = self.bucket
                     path: Path = source.meta(Path)
@@ -122,7 +122,7 @@ class S3FileGenerator(FileStreamGenerator):
 
                         transfer_thread = Thread(target=write_to_s3, daemon=True, name=self.__class__.__name__)
                         transfer_thread.start()
-                        yield S3SeekableFileStream(reader)
+                        yield S3SeekableFileStream(reader, parent=source)
                         transfer_thread.join()
                 else:
                     raise Exception("?")  # TODO: Fix

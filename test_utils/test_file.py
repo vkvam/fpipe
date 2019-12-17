@@ -29,6 +29,9 @@ class ReversibleTestFile(TestFile):
         self.letters = bytearray(string.ascii_letters, encoding='utf-8')
         self.letter_count = len(self.letters)
 
+    def seek(self, n):
+        self.count = n
+
     def read(self, n=None):
         remaining = max(self.size - self.count, 0)
         if n:
