@@ -1,3 +1,7 @@
+[![Build Status](https://api.travis-ci.org/vkvam/fpipe.svg?branch=master)](https://travis-ci.org/vkvam/fpipe)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+
 # fPipe
 
 python framework for data manipulation and metadata extraction built around the python file-like api.
