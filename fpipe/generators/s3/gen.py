@@ -1,7 +1,7 @@
 from threading import Thread, Lock
 from typing import Iterable, Union, Optional
 
-from fpipe.file import File, FileStream, SeekableFileStream, FileMeta
+from fpipe.file import File, FileStream, SeekableFileStream, FileMeta, FileException
 from fpipe.generators.abstract import FileStreamGenerator
 from fpipe.meta.path import Path
 from fpipe.utils.mime import guess_mime
@@ -95,7 +95,9 @@ class S3FileGenerator(FileStreamGenerator):
                     for o in list_objects(client, bucket, prefix):
                         with S3FileReader(client, resource, bucket, o['Key'], seekable=self.seekable) as reader:
                             yield S3SeekableFileStream(reader, parent=source)
-                elif isinstance(source, FileStream) and self.bucket:
+                elif isinstance(source, FileStream):
+                    if not self.bucket:
+                        raise FileException("FileStream source needs bucket defined")
                     bucket = self.bucket
                     path: Path = source.meta(Path)
                     mime, encoding = guess_mime(path.value)
@@ -125,7 +127,7 @@ class S3FileGenerator(FileStreamGenerator):
                         yield S3SeekableFileStream(reader, parent=source)
                         transfer_thread.join()
                 else:
-                    raise Exception("?")  # TODO: Fix
+                    raise FileException(f"FileStream source {source.__class__.__name} not valid")
 
             except Exception:
                 raise

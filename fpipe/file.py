@@ -3,6 +3,14 @@ from typing import Optional, Type, IO, Iterable
 from fpipe.meta.abstract import FileMeta, MetaMap, T
 
 
+class SeekException(Exception):
+    pass
+
+
+class FileException(Exception):
+    pass
+
+
 class File:
     def __init__(self,
                  parent: Optional['File'] = None,
@@ -46,4 +54,3 @@ class SeekableFileStream(FileStream):
     A seekable file-like
     """
     pass
-

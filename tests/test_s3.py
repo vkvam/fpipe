@@ -4,12 +4,12 @@ from unittest import TestCase
 
 from typing import IO, Iterable, List
 
+from fpipe.file import SeekException, FileException
 from fpipe.generators.fileinfo import FileInfoException, FileInfoGenerator
 from moto import mock_s3, mock_iam, mock_config
 from fpipe.generators.s3 import S3FileGenerator, S3File, S3PrefixFile, S3Key, S3Version, S3Size, S3Mime, S3Modified
 from fpipe.meta.checksum import MD5Calculated
 from fpipe.meta.size import SizeCalculated
-from fpipe.utils.s3_reader import SeekException
 from test_utils.test_file import TestStream, TestFileGenerator
 
 
@@ -102,6 +102,7 @@ class TestS3(TestCase):
             self.assertEqual(f.file.read(), source_body)
         self.assertEqual(len(all_files_copy), 0)
 
+
     @mock_s3
     @mock_iam
     @mock_config
@@ -174,14 +175,26 @@ class TestS3(TestCase):
 
             # Assert files have seeked identical by comparing them
             assert_file_content([f.read(extract_length) for f in files], extract_length)
-
-            for file in files:
-                with self.assertRaises(SeekException):
-                    # Assert exception on invalid seek
-                    file.seek(0, 3)
-                signal = True
+            signal = True
 
         self.assertTrue(signal)
+
+    @mock_s3
+    @mock_iam
+    @mock_config
+    def test_exceptions(self):
+        client, resource, bucket = self.__init_s3()
+        with self.assertRaises(SeekException):
+            for f in S3FileGenerator((TestStream(1, 'xyz', reversible=True),), client, resource, bucket=bucket):
+                f.file.seek(0, 3)
+
+        with self.assertRaises(FileException):
+            for f in S3FileGenerator((TestStream(1, 'xyz', reversible=True),), client, resource):
+                f.file.seek(0, 3)
+
+        with self.assertRaises(FileException):
+            for f in S3FileGenerator((S3File(bucket, S3Key('x')),), client, resource):
+                f.file.read(1)
 
     @mock_s3
     @mock_iam

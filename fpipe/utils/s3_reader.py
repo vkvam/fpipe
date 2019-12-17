@@ -4,9 +4,7 @@ import math
 import threading
 from typing import Optional, List, Tuple, IO, Iterator, AnyStr, Iterable
 
-
-class SeekException(Exception):
-    pass
+from fpipe.file import SeekException, FileException
 
 
 class S3FileReader(IO[bytes]):
@@ -67,14 +65,13 @@ class S3FileReader(IO[bytes]):
                 this_ver = version.get().get('VersionId')
                 if this_ver == self.version:
                     self._size = version.size
-                    break
+                    return
         else:
             for obj in self.s3_resource.Bucket(self.bucket).objects.filter(Prefix=self.key):
                 if obj.key == self.key:
                     self._size = obj.size
-
-        if self._size == 0:
-            raise Exception("Size is 0")
+                    return
+        raise FileException(f"Could not locate S3 object s3://{self.bucket}/{self.key}")
 
     def size(self):
         return self._size
