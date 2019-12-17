@@ -1,5 +1,6 @@
 import datetime
 from copy import copy
+from time import sleep
 from unittest import TestCase
 
 from fpipe.generators.fileinfo import FileInfoException, FileInfoGenerator
@@ -33,7 +34,7 @@ class TestS3(TestCase):
     @mock_config
     def test_s3_meta(self):
         client, resource, bucket = self.__init_s3()
-        size = 2 ** 23
+        size = 2 ** 24
 
         test_stream = TestStream(
             size,
@@ -46,7 +47,8 @@ class TestS3(TestCase):
             ),
             client,
             resource,
-            bucket=bucket
+            bucket=bucket,
+            seekable=False
         )
 
         gen = FileInfoGenerator(gen, [SizeCalculated, MD5Calculated])
@@ -57,14 +59,14 @@ class TestS3(TestCase):
             with self.assertRaises(FileInfoException):
                 # It is not possible to retrieve size from FileInfoGenerator before the complete stream has been read
                 x = f.meta(MD5Calculated).value
-
             cnt = f.file.read()
             test_stream.file.reset()
             size_calc = f.meta(SizeCalculated).value
             self.assertEqual(size_calc, size)
-            self.assertEqual(f.parent.meta(S3Mime).value, 'application/octet-stream')
 
+            self.assertEqual(f.parent.meta(S3Mime).value, 'application/octet-stream')
             self.assertEqual(f.parent.meta(S3Size).value, size)
+
             self.assertEqual(cnt, test_stream.file.read())
             self.assertIsInstance(f.parent.meta(S3Modified).value, datetime.datetime)
             self.assertIsInstance(f.meta(S3Modified).value, datetime.datetime)
@@ -85,7 +87,14 @@ class TestS3(TestCase):
         all_files_copy = copy(all_files)
 
         self.__create_objects(client, bucket, all_files)
-        gen = S3FileGenerator((S3PrefixFile(bucket, prefix) for prefix in prefixes), client, resource)
+
+        gen = S3FileGenerator(
+            (S3PrefixFile(bucket, prefix) for prefix in prefixes),
+            client,
+            resource,
+            seekable=False
+        )
+
         for f in gen:
             source_key, source_body = all_files_copy.pop(0)
             self.assertEqual(f.file.read(), source_body)
@@ -106,7 +115,11 @@ class TestS3(TestCase):
         ]
 
         self.__create_objects(client, bucket, all_files)
-        gen = S3FileGenerator((S3File(bucket, S3Key(key)) for key, _ in all_files), client, resource)
+        gen = S3FileGenerator(
+            (S3File(bucket, S3Key(key)) for key, _ in all_files),
+            client, resource,
+            seekable=False
+        )
 
         all_files_copy = copy(all_files)
         for f in gen:
@@ -127,13 +140,14 @@ class TestS3(TestCase):
             }
         )
 
-        sizes = [10, 20]
+        sizes = [2 ** i for i in range(20, 24)]
 
         test_streams = [
             TestStream(
                 size,
                 'xyz'
-            ) for size in sizes]
+            ) for size in sizes
+        ]
 
         gen = S3FileGenerator(
             TestFileGenerator(
@@ -141,12 +155,13 @@ class TestS3(TestCase):
             ),
             client,
             resource,
-            bucket=bucket
+            bucket=bucket,
+            seekable=False
         )
 
         # Note: f.meta(S3Version) will raise exception since moto does not give version for multiparts
-        #versions = [[f.meta(S3Key), f.file.read() and f.meta(S3Version)] for f in gen]
-        versions = [[f.meta(S3Key), f.file.read() and S3Version('?')] for f in gen]
+        # versions = [[f.meta(S3Key), f.file.read() and f.meta(S3Version)] for f in gen]
+        versions = [[f.file.read() and f.meta(S3Key), S3Version('?')] for f in gen]
 
         # Horrible hack since moto does not return VersionId for multipart uploads
         for idx, version in enumerate(resource.Bucket(bucket).object_versions.filter(Prefix='xyz')):
@@ -160,12 +175,13 @@ class TestS3(TestCase):
             s3_files,
             client,
             resource,
-            bucket=bucket
+            bucket=bucket,
+            seekable=False
         )
-
         for f in gen:
             content = f.file.read()
             self.assertEqual(f.meta(S3Version).value, versions.pop(0)[1].value)
             t_stream = test_streams.pop(0)
             t_stream.file.reset()
             self.assertEqual(content, t_stream.file.read())
+        self.assertEqual(len(test_streams), 0)

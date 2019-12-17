@@ -1,5 +1,6 @@
 import hashlib
 import os
+import time
 
 from unittest import TestCase
 
@@ -36,8 +37,7 @@ class TestFTP(TestCase):
         try:
             for path, size in files_in.items():
                 with open(path, 'wb') as f:
-                    f.write(b'x'*size)
-
+                    f.write(b'x' * size)
             gen = FTPFileGenerator(
                 FTPFile(
                     path,
@@ -89,12 +89,12 @@ class TestFTP(TestCase):
                     run_balance = True
                 self.assertTrue(run_balance)
 
-            ftp_server_thread.stop()
         finally:
             for path in files_in.keys():
                 try:
                     os.remove(path)
                 except:
                     pass
+            ftp_server_thread.stop()
 
         self.assertTrue(run_balance)

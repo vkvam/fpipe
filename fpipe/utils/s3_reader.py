@@ -11,11 +11,12 @@ class S3FileReader(IO[bytes]):
                  s3_resource,
                  bucket,
                  key,
-                 cache_size=2 ** 21,
-                 cache_chunk_count_limit=16,
+                 cache_size=5 * 2 ** 20,
+                 cache_chunk_count_limit=4,
                  lock: Optional[threading.Lock] = None,
                  meta_lock: Optional[threading.Lock] = None,
-                 version: Optional[str] = None):
+                 version: Optional[str] = None,
+                 seekable=True):
         self.s3_client = s3_client
         self.s3_resource = s3_resource
 
@@ -36,6 +37,8 @@ class S3FileReader(IO[bytes]):
         self.offset = 0
         self.read_lock = lock
         self.meta_lock = meta_lock
+        self.__seekable = seekable
+        self.obj_body = None
 
         if self.meta_lock:
             self.meta_lock.acquire()
@@ -45,10 +48,11 @@ class S3FileReader(IO[bytes]):
         else:
             self.__initialize()
 
-    def __enter__(self):
+    def __enter__(self) -> 'S3FileReader':
         return self
 
     def __exit__(self, *args, **xargs):
+        self.close()
         return True
 
     def __initialize(self):
@@ -74,6 +78,8 @@ class S3FileReader(IO[bytes]):
         return self.offset
 
     def seek(self, offset, whence=0):
+        if not self.__seekable:
+            raise Exception("S3 seek not enabled")
         if whence == 0:
             self.offset = offset
         elif whence == 1:
@@ -83,37 +89,46 @@ class S3FileReader(IO[bytes]):
         else:
             raise Exception("Invalid whence")
 
-    def release(self):
-        self.read_lock.release()
-
-    def read(self, count=-1):
+    def read(self, count=None):
         # Mechanism to wait until object is available
         if self.read_lock and self.read_lock.locked():
             self.read_lock.acquire()
             self.__initialize()
             self.read_lock = None
 
-        # Once lock is released we can release metadata
+        # Once the read lock is released we can release metadata
         if self.meta_lock:
             self.meta_lock.release()
             self.meta_lock = None
 
-        end = self.size()
-        if count > 0:
+        if not self.__seekable:
+            self.obj_body = self.obj_body or self.s3_client.get_object(
+                Bucket=self.bucket,
+                Key=self.key,
+                **({
+                       'VersionId': self.version
+                   } if self.version else {})
+            )['Body']
+            return self.obj_body.read(count)
+
+        end = self._size
+        if count:
             end = min(end, self.offset + count)
 
-        data = bytearray()
+        data = None
         while self.offset < end:
             if self.last_chunk is None:
                 self.last_chunk = self._get_chunk_for_offset()
-
             chunk_start, chunk_bytes = self.last_chunk
 
             while chunk_start is not None:
                 while chunk_start <= self.offset < chunk_start + self.cache_chunk_size and self.offset < end:
                     chunk_offset = self.offset - chunk_start
                     self.offset = min(end, chunk_start + self.cache_chunk_size)
-                    data += chunk_bytes[chunk_offset:end - chunk_start]
+                    if data:
+                        data += chunk_bytes[chunk_offset:end - chunk_start]
+                    else:
+                        data = chunk_bytes[chunk_offset:end - chunk_start]
 
                 if self.offset < end:
                     self.last_chunk = chunk_start, chunk_bytes = self._get_chunk_for_offset()
@@ -122,19 +137,15 @@ class S3FileReader(IO[bytes]):
 
             if self.offset < end:
                 self.last_chunk = self._append_cache_chunk()
-
-        return data
+        return data or b''
 
     def _get_chunk_for_offset(self):
         self.chunk_lookups += 1
-        chunk_index = self._get_chunk_index()
-        for chunk_start, chunk_bytes in self.cache_chunks:
-            if chunk_start == chunk_index:
-                return chunk_start, chunk_bytes
-        return None, None
-
-    def _get_chunk_index(self):
-        return int(math.floor(self.offset / self.cache_chunk_size) * self.cache_chunk_size)
+        chunk_index = int(math.floor(self.offset / self.cache_chunk_size) * self.cache_chunk_size)
+        return next((
+            (chunk_start, chunk_bytes) for chunk_start, chunk_bytes in self.cache_chunks
+            if chunk_start == chunk_index
+        ), (None, None))
 
     def _append_cache_chunk(self):
 
@@ -145,9 +156,9 @@ class S3FileReader(IO[bytes]):
             Bucket=self.bucket,
             Key=self.key,
             Range='bytes={0}-{1}'.format(str(chunk_start), str(chunk_end)),
-            **{
-                'VersionId': self.version
-            } if self.version else {}
+            **({
+                   'VersionId': self.version
+               } if self.version else {})
         )
 
         if len(self.cache_chunks) >= self.cache_chunk_count_limit:
@@ -159,45 +170,49 @@ class S3FileReader(IO[bytes]):
         self.bytes_received += chunk_end - chunk_start + 1
         return chunk
 
-    # TODO: Fix all under
     def close(self) -> None:
-        pass
+        if self.obj_body:
+            self.obj_body.close()
+
+        self.cache_chunks.clear()
+        self.cache_chunks = None
 
     def fileno(self) -> int:
-        pass
+        raise NotImplementedError
 
     def flush(self) -> None:
-        pass
+        while self.read(2 ** 20):
+            pass
 
     def isatty(self) -> bool:
         pass
 
     def readable(self) -> bool:
-        pass
+        return True
 
     def readline(self, limit: int = ...) -> AnyStr:
-        pass
+        raise NotImplementedError
 
     def readlines(self, hint: int = ...) -> List[AnyStr]:
-        pass
+        raise NotImplementedError
 
     def seekable(self) -> bool:
-        pass
+        return self.__seekable
 
     def truncate(self, size: Optional[int] = ...) -> int:
         pass
 
     def writable(self) -> bool:
-        pass
+        return False
 
     def write(self, s: AnyStr) -> int:
-        pass
+        raise NotImplementedError
 
     def writelines(self, lines: Iterable[AnyStr]) -> None:
-        pass
+        raise NotImplementedError
 
     def __next__(self) -> AnyStr:
-        pass
+        raise NotImplementedError
 
     def __iter__(self) -> Iterator[AnyStr]:
-        pass
+        raise NotImplementedError

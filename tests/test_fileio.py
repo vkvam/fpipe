@@ -25,6 +25,8 @@ class TestFileIO(TestCase):
             "cat /dev/stdin"
         )
 
+        signal = False
+
         for file in FileInfoGenerator(gen, [SizeCalculated, MD5Calculated]):
 
             with self.assertRaises(FileInfoException):
@@ -38,3 +40,5 @@ class TestFileIO(TestCase):
 
             self.assertEqual(file.meta(SizeCalculated).value, size)
             self.assertNotEqual(file.meta(MD5Calculated).value, '')
+            signal = True
+        self.assertTrue(signal)

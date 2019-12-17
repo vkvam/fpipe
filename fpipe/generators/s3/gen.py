@@ -7,7 +7,7 @@ from fpipe.meta.path import Path
 from fpipe.utils.mime import guess_mime
 from fpipe.utils.s3 import list_objects
 from fpipe.utils.s3_reader import S3FileReader
-from fpipe.utils.s3_write import S3FileWriter
+from fpipe.utils.s3_writer import S3FileWriter
 from .meta import S3Version, S3Key, S3Size, S3Modified, S3Mime
 
 
@@ -65,15 +65,17 @@ class S3FileGenerator(FileStreamGenerator):
                  files: Iterable[Union[S3File, S3PrefixFile, FileStream]],
                  client,
                  resource,
-                 bucket: Optional[str] = None):
+                 bucket: Optional[str] = None,
+                 seekable=False):
         super().__init__(files)
         self.bucket = bucket
         self.client = client
         self.resource = resource
+        self.seekable = seekable
 
         # self.stats = Stats(self.__class__.__name__, 1)
 
-    def __iter__(self) -> Iterable[S3SeekableFileStream]:
+    def __iter__(self) -> Iterable[FileStream]:
         for source in self.files:
             try:
                 client, resource = self.client, self.resource
@@ -81,40 +83,47 @@ class S3FileGenerator(FileStreamGenerator):
                 if isinstance(source, S3File):
                     bucket, key, version = source.bucket, source.key, source.version
 
-                    reader = S3FileReader(client,
-                                          resource,
-                                          bucket,
-                                          key.value,
-                                          version=version.value if version else None
-                                          )
-                    yield S3SeekableFileStream(reader)
+                    with S3FileReader(client,
+                                      resource,
+                                      bucket,
+                                      key.value,
+                                      version=version.value if version else None,
+                                      seekable=self.seekable) as reader:
+                        yield S3SeekableFileStream(reader)
                 elif isinstance(source, S3PrefixFile):
                     bucket, prefix = source.bucket, source.prefix
                     for o in list_objects(client, bucket, prefix):
-                        reader = S3FileReader(client, resource, bucket, o['Key'])
-                        yield S3SeekableFileStream(reader)
+                        with S3FileReader(client, resource, bucket, o['Key'], seekable=self.seekable) as reader:
+                            yield S3SeekableFileStream(reader)
                 elif isinstance(source, FileStream) and self.bucket:
                     bucket = self.bucket
                     path: Path = source.meta(Path)
                     mime, encoding = guess_mime(path.value)
+                    read_lock = Lock()
+                    with S3FileReader(client,
+                                      resource,
+                                      bucket,
+                                      path.value,
+                                      lock=read_lock,
+                                      meta_lock=Lock(),
+                                      seekable=self.seekable) as reader:
 
-                    reader = S3FileReader(client, resource, bucket, path.value, lock=Lock(), meta_lock=Lock())
+                        def write_to_s3():
+                            with S3FileWriter(client, bucket, path.value, mime) as writer:
+                                while True:
+                                    b = source.file.read(writer.buffer.chunk_size)
+                                    # self.stats.w(b)
+                                    writer.write(b)
+                                    if not b:
+                                        break
+                            reader.version = writer.mpu_res.get('VersionId')
+                            # Release reader when we are done writing
+                            read_lock.release()
 
-                    def write_to_s3():
-                        with S3FileWriter(client, bucket, path.value, mime=mime) as writer:
-                            while True:
-                                b = source.file.read(writer.buffer.chunk_size)
-                                # self.stats.w(b)
-                                writer.write(b)
-                                if not b:
-                                    break
-                        reader.version = writer.mpu_res.get('VersionId')
-                        reader.release()
-
-                    transfer_thread = Thread(target=write_to_s3, daemon=True, name=self.__class__.__name__)
-                    transfer_thread.start()
-                    yield S3SeekableFileStream(reader)
-                    transfer_thread.join()
+                        transfer_thread = Thread(target=write_to_s3, daemon=True, name=self.__class__.__name__)
+                        transfer_thread.start()
+                        yield S3SeekableFileStream(reader)
+                        transfer_thread.join()
                 else:
                     raise Exception("?")  # TODO: Fix
 

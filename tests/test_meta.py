@@ -10,7 +10,7 @@ from fpipe.generators.fileinfo import FileInfoGenerator, FileInfoException
 from test_utils.test_file import ReversibleTestFile, TestFileGenerator, TestStream
 
 
-class TestFileIO(TestCase):
+class TestMeta(TestCase):
     @staticmethod
     def __checksum(data: bytes):
         sig = hashlib.md5()
@@ -18,7 +18,7 @@ class TestFileIO(TestCase):
         return sig.hexdigest()
 
     def test_chaining_test_stream(self):
-        stream_sizes = [2 ** i for i in range(17, 21)]
+        stream_sizes = [2 ** i for i in range(14, 18)]
 
         # Get expected results from FileInfoGenerators
         md5_of_files = [
@@ -41,7 +41,6 @@ class TestFileIO(TestCase):
 
         # Get checksum for reversed files
         gen = FileInfoGenerator(gen, [MD5Calculated, SizeCalculated])
-
         for f in gen:
             f.file.read(1)
             # Assert that we are not able to retrieve calculated data before files have been completely read
@@ -55,7 +54,6 @@ class TestFileIO(TestCase):
             # Assert that checksum created in two different ways are equal
             self.assertEqual(f.parent.parent.meta(MD5Calculated).value, md5_of_files.pop(0))
             self.assertEqual(f.meta(MD5Calculated).value, md5_of_reversed_files.pop(0))
-
             self.assertEqual(f.meta(Path).value, str(f.meta(SizeCalculated).value))
         # Assert that we've checked all files
         self.assertEqual(len(md5_of_files) + len(md5_of_reversed_files), 0)
