@@ -44,7 +44,7 @@ class TestTar(TestCase):
             source_files = list(create_nested_tar(tar))
         f.seek(0)
 
-        source_file_content = [(f.reset() and f.read(), p, s, t) for f, p, s, t in source_files]
+        source_file_content = [(f.seek() or f.read(), p, s, t) for f, p, s, t in source_files]
 
         tar_stream = FileStream(f)
 

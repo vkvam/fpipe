@@ -1,13 +1,15 @@
 import datetime
-from copy import copy
-from time import sleep
+from copy import copy, deepcopy
 from unittest import TestCase
+
+from typing import IO, Iterable, List
 
 from fpipe.generators.fileinfo import FileInfoException, FileInfoGenerator
 from moto import mock_s3, mock_iam, mock_config
 from fpipe.generators.s3 import S3FileGenerator, S3File, S3PrefixFile, S3Key, S3Version, S3Size, S3Mime, S3Modified
 from fpipe.meta.checksum import MD5Calculated
 from fpipe.meta.size import SizeCalculated
+from fpipe.utils.s3_reader import SeekException
 from test_utils.test_file import TestStream, TestFileGenerator
 
 
@@ -60,7 +62,7 @@ class TestS3(TestCase):
                 # It is not possible to retrieve size from FileInfoGenerator before the complete stream has been read
                 x = f.meta(MD5Calculated).value
             cnt = f.file.read()
-            test_stream.file.reset()
+            test_stream.file.seek(0)
             size_calc = f.meta(SizeCalculated).value
             self.assertEqual(size_calc, size)
 
@@ -133,37 +135,52 @@ class TestS3(TestCase):
     @mock_config
     def test_s3_seek(self):
         client, resource, bucket = self.__init_s3()
+        file_size = 2 ** 20
+        test_stream = TestStream(file_size, 'xyz', reversible=True)
+        test_file = deepcopy(test_stream.file)
 
-        test_streams = [
-            TestStream(2 ** 20, 'xyz', reversible=True)
-        ]
+        def seek(files: Iterable[IO[bytes]], n=None, whence=0):
+            for file in files:
+                file.seek(n, whence)
+
+        def assert_file_content(files_content: List[bytes], length):
+            self.assertEqual(*files_content)
+            for c in files_content:
+                self.assertEqual(len(c), length)
+
         signal = False
-        for f in S3FileGenerator(test_streams,
+        for f in S3FileGenerator((test_stream,),
                                  client,
                                  resource,
                                  bucket=bucket,
                                  seekable=True
                                  ):
-            test_file = f.parent.file
             s3_file = f.file
 
-            length = 8
-            s3_file.seek(2 ** 20 - length)
-            s3_content = s3_file.read()
-            test_file.seek(2 ** 20 - length)
-            test_file_content = test_file.read()
+            extract_length = 13 + 42 + 69 + 101 + 404 + 420
 
-            self.assertEqual(len(s3_content), length)
-            self.assertEqual(s3_content, test_file_content)
+            files = [s3_file, test_file]
+            # Seek relative to end
+            seek(files, extract_length, 2)
 
-            s3_file.seek(0)
-            s3_content = s3_file.read(length)
-            test_file.seek(0)
-            test_file_content = test_file.read(length)
+            # Seek relative to current position
+            seek(files, -10, 1)
+            seek(files, 10, 1)
 
-            self.assertEqual(len(s3_content), length)
-            self.assertEqual(s3_content, test_file_content)
-            signal = True
+            # Assert files have seeked identical by comparing them
+            assert_file_content([f.read() for f in files], extract_length)
+
+            seek(files, 0)
+
+            # Assert files have seeked identical by comparing them
+            assert_file_content([f.read(extract_length) for f in files], extract_length)
+
+            for file in files:
+                with self.assertRaises(SeekException):
+                    # Assert exception on invalid seek
+                    file.seek(0, 3)
+                signal = True
+
         self.assertTrue(signal)
 
     @mock_s3
@@ -220,6 +237,6 @@ class TestS3(TestCase):
             content = f.file.read()
             self.assertEqual(f.meta(S3Version).value, versions.pop(0)[1].value)
             t_stream = test_streams.pop(0)
-            t_stream.file.reset()
+            t_stream.file.seek(0)
             self.assertEqual(content, t_stream.file.read())
         self.assertEqual(len(test_streams), 0)

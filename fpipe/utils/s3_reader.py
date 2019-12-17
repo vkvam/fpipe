@@ -5,6 +5,10 @@ import threading
 from typing import Optional, List, Tuple, IO, Iterator, AnyStr, Iterable
 
 
+class SeekException(Exception):
+    pass
+
+
 class S3FileReader(IO[bytes]):
     def __init__(self,
                  s3_client,
@@ -39,6 +43,7 @@ class S3FileReader(IO[bytes]):
         self.meta_lock = meta_lock
         self.__seekable = seekable
         self.obj_body = None
+        self.locked = self.meta_lock or self.read_lock
 
         if self.meta_lock:
             self.meta_lock.acquire()
@@ -78,18 +83,19 @@ class S3FileReader(IO[bytes]):
         return self.offset
 
     def seek(self, offset, whence=0):
+        self.locked and self._unlock()
         if not self.__seekable:
-            raise Exception("S3 seek not enabled")
+            raise SeekException("S3 seek not enabled")
         if whence == 0:
             self.offset = offset
         elif whence == 1:
             self.offset += offset
         elif whence == 2:
-            self.offset = self.size() + offset
+            self.offset = self._size - offset
         else:
-            raise Exception("Invalid whence")
+            raise SeekException(f"Invalid whence {whence}, should be 0,1 or 2")
 
-    def read(self, count=None):
+    def _unlock(self):
         # Mechanism to wait until object is available
         if self.read_lock and self.read_lock.locked():
             self.read_lock.acquire()
@@ -100,6 +106,10 @@ class S3FileReader(IO[bytes]):
         if self.meta_lock:
             self.meta_lock.release()
             self.meta_lock = None
+        self.locked = False
+
+    def read(self, count=None):
+        self.locked and self._unlock()
 
         if not self.__seekable:
             self.obj_body = self.obj_body or self.s3_client.get_object(

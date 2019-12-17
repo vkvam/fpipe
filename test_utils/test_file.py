@@ -4,22 +4,29 @@ from typing import Iterable
 from fpipe.file import FileStream
 from fpipe.generators.abstract import FileStreamGenerator
 from fpipe.meta.path import Path
+from fpipe.utils.s3_reader import SeekException
 
 
 class TestFile:
     def __init__(self, size):
         self.size = size
-        self.count = 0
+        self.offset = 0
 
-    def reset(self):
-        self.count = 0
-        return True
+    def seek(self, offset=0, whence=0):
+        if whence == 0:
+            self.offset = offset
+        elif whence == 1:
+            self.offset += offset
+        elif whence == 2:
+            self.offset = self.size - offset
+        else:
+            raise SeekException()
 
     def read(self, n=None):
-        remaining = max(self.size - self.count, 0)
+        remaining = max(self.size - self.offset, 0)
         if n:
             remaining = min(remaining, n)
-        self.count += remaining
+        self.offset += remaining
         return b'x' * remaining
 
 
@@ -29,15 +36,12 @@ class ReversibleTestFile(TestFile):
         self.letters = bytearray(string.ascii_letters, encoding='utf-8')
         self.letter_count = len(self.letters)
 
-    def seek(self, n):
-        self.count = n
-
     def read(self, n=None):
-        remaining = max(self.size - self.count, 0)
+        remaining = max(self.size - self.offset, 0)
         if n:
             remaining = min(remaining, n)
-        last_count = self.count
-        self.count += remaining
+        last_count = self.offset
+        self.offset += remaining
         return bytearray(self.letters[i % self.letter_count] for i in range(last_count, last_count + remaining))
 
 
