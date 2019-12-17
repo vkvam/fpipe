@@ -16,7 +16,7 @@ class FileGenerator(Generic[T]):
 
     @abstractmethod
     def __iter__(self) -> Iterable[T]:
-        pass
+        raise NotImplementedError
 
 
 class FileStreamGenerator(FileGenerator[T]):
@@ -28,13 +28,11 @@ class FileStreamGenerator(FileGenerator[T]):
     def __iter__(self) -> Iterable[T]:
         pass
 
-    def start(self):
+    def flush(self):
         for f in self:
-            read = f.file.read
-            while read(2 ** 14):
-                pass
+            f.file.flush()
 
 
 class IncompatibleFileTypeException(Exception):
-    def __init__(self, _class):
-        pass
+    def __init__(self, file: File):
+        super(f"{file.__class__.__name__} not supported")

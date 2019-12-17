@@ -185,7 +185,7 @@ class S3FileReader(IO[bytes]):
             pass
 
     def isatty(self) -> bool:
-        pass
+        raise NotImplementedError
 
     def readable(self) -> bool:
         return True
@@ -200,7 +200,7 @@ class S3FileReader(IO[bytes]):
         return self.__seekable
 
     def truncate(self, size: Optional[int] = ...) -> int:
-        pass
+        raise NotImplementedError
 
     def writable(self) -> bool:
         return False

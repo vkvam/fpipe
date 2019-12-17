@@ -9,7 +9,7 @@ class FileMeta(Generic[T]):
     @property
     @abstractmethod
     def value(self) -> T:
-        pass
+        raise NotImplementedError
 
 
 class FileMetaValue(FileMeta[T]):

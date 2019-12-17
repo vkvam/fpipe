@@ -13,14 +13,8 @@ class ModifiedTar(FileMetaValue[int]):
     pass
 
 
-# TODO: Add needed
-# Check A TarInfo object has the following public data attributes:
-# https://docs.python.org/3/library/tarfile.html
-
-
 class TarFile(File):
-    def __init__(self):
-        super().__init__()
+    pass
 
 
 class TarFileGenerator(FileStreamGenerator[FileStream]):
