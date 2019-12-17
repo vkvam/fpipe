@@ -2,4 +2,4 @@
 Contributors
 ============
 
-* Vemund Kvam <vemund.kvam@get.no>
+* Vemund Kvam <vemund.kvam@gmail.com>

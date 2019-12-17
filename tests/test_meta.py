@@ -18,7 +18,7 @@ class TestMeta(TestCase):
         return sig.hexdigest()
 
     def test_chaining_test_stream(self):
-        stream_sizes = [2 ** i for i in range(14, 18)]
+        stream_sizes = [2 ** i for i in range(18, 22)]
 
         # Get expected results from FileInfoGenerators
         md5_of_files = [
