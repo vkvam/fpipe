@@ -1,3 +1,5 @@
+[![Build Status](https://api.travis-ci.org/vkvam/fpipe.svg?branch=master)]()
+
 # fPipe
 
 python framework for data manipulation and metadata extraction built around the python file-like api.
