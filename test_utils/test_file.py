@@ -2,8 +2,9 @@ import string
 from types import TracebackType
 from typing import Iterable, IO, Optional, Type, AnyStr
 
-from fpipe.file import FileStream, SeekException
-from fpipe.generators.abstract import FileStreamGenerator
+from fpipe.file.file import FileStream
+from fpipe.exceptions import SeekException
+from fpipe.gen.abstract import FileStreamGenerator
 from fpipe.meta.path import Path
 
 
@@ -103,12 +104,3 @@ class TestStream(FileStream):
             super().__init__(ReversibleTestFile(size), meta=[Path(path)])
         else:
             super().__init__(TestFile(size), meta=[Path(path)])
-
-
-class TestFileGenerator(FileStreamGenerator):
-    def __init__(self, files: Iterable[TestStream]):
-        super().__init__(files)
-
-    def __iter__(self) -> Iterable[TestStream]:
-        for f in self.files:
-            yield f

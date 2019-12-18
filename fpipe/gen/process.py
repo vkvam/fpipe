@@ -2,21 +2,20 @@ import subprocess
 import threading
 from typing import Iterable
 
-from fpipe.file import FileStream, File
-from fpipe.generators.abstract import FileStreamGenerator
+from fpipe.file.file import FileStream
+from fpipe.gen.abstract import FileStreamGenerator
 from fpipe.utils.bytesloop import BytesLoop
 
 
 class ProcessFileGenerator(FileStreamGenerator):
-    def __init__(self, files: Iterable[File], cmd, buf_size=2**14):
-        super().__init__(files)
+    def __init__(self, cmd, buf_size=2**14):
+        super().__init__()
         self.cmd = cmd
         self.byte_loop = BytesLoop(buf_size)
 
     def __iter__(self) -> Iterable[FileStream]:
         for source in self.files:
             buf_size = self.byte_loop.buf_size
-            # stats = Stats(self.__class__.__name__)
 
             with subprocess.Popen(self.cmd,
                                   stdin=subprocess.PIPE,

@@ -1,79 +1,30 @@
-from threading import Thread, Lock
+from threading import Lock, Thread
 from typing import Iterable, Union, Optional
 
-from fpipe.file import File, FileStream, SeekableFileStream, FileMeta, FileException
-from fpipe.generators.abstract import FileStreamGenerator
-from fpipe.meta.path import Path
+from fpipe.exceptions import FileException
+from fpipe.file import FileStream
+from fpipe.file.s3 import S3File, S3PrefixFile, S3SeekableFileStream
+from fpipe.gen.abstract import FileStreamGenerator
+from fpipe.meta import Path
 from fpipe.utils.mime import guess_mime
 from fpipe.utils.s3 import list_objects
 from fpipe.utils.s3_reader import S3FileReader
 from fpipe.utils.s3_writer import S3FileWriter
-from .meta import S3Version, S3Key, S3Size, S3Modified, S3Mime
-
-
-class S3FileInfo:
-    def __init__(self, reader: S3FileReader):
-        self.reader = reader
-        self.__s3_obj = None
-        self.bucket = reader.bucket
-        self.path = reader.key
-
-    def _get_metadata(self, key: str):
-        self.__s3_obj = self.__s3_obj or self.reader.s3_client.get_object(
-            Bucket=self.reader.bucket,
-            Key=self.reader.key,
-            **({'VersionId': self.reader.version} if self.reader.version else {})
-        )
-        if self.__s3_obj:
-            return self.__s3_obj[key]
-        else:
-            raise Exception("?")  # TODO: Improve
-
-    def meta_gen(self) -> Iterable[FileMeta]:
-        if self.reader.version:
-            yield S3Version(self.reader.version)
-        yield S3Key(self.path)
-
-        yield S3Size(lambda: self._get_metadata('ContentLength'), self.reader.meta_lock)
-        yield S3Modified(lambda: self._get_metadata('LastModified'), self.reader.meta_lock)
-        yield S3Mime(lambda: self._get_metadata('ContentType'), self.reader.meta_lock)
-
-
-class S3File(File):
-    def __init__(self, bucket: str, key: S3Key, version: Optional[S3Version] = None):
-        super().__init__()
-        self.bucket = bucket
-        self.key = key
-        self.version = version
-
-
-class S3PrefixFile(File):
-    def __init__(self, bucket: str, prefix: str):
-        super().__init__()
-        self.bucket = bucket
-        self.prefix = prefix
-
-
-class S3SeekableFileStream(SeekableFileStream):
-    def __init__(self, file: S3FileReader, parent=None):
-        info = S3FileInfo(file)
-        super().__init__(file, meta=list(info.meta_gen()), parent=parent)
 
 
 class S3FileGenerator(FileStreamGenerator):
+    f_type = Union[S3File, S3PrefixFile, FileStream]
+
     def __init__(self,
-                 files: Iterable[Union[S3File, S3PrefixFile, FileStream]],
                  client,
                  resource,
                  bucket: Optional[str] = None,
                  seekable=False):
-        super().__init__(files)
+        super().__init__()
         self.bucket = bucket
         self.client = client
         self.resource = resource
         self.seekable = seekable
-
-        # self.stats = Stats(self.__class__.__name__, 1)
 
     def __iter__(self) -> Iterable[FileStream]:
         for source in self.files:

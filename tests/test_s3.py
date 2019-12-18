@@ -4,13 +4,14 @@ from unittest import TestCase
 
 from typing import IO, Iterable, List
 
-from fpipe.file import SeekException, FileException
-from fpipe.generators.fileinfo import FileInfoException, FileInfoGenerator
+from fpipe.exceptions import SeekException, FileException, FileInfoException
+from fpipe.gen import FileInfoGenerator, S3FileGenerator
+from fpipe.file import S3File, S3PrefixFile
+from fpipe.meta import MD5Calculated, S3Key, S3Size, S3Mime, S3Modified, S3Version, SizeCalculated
+
 from moto import mock_s3, mock_iam, mock_config
-from fpipe.generators.s3 import S3FileGenerator, S3File, S3PrefixFile, S3Key, S3Version, S3Size, S3Mime, S3Modified
-from fpipe.meta.checksum import MD5Calculated
-from fpipe.meta.size import SizeCalculated
-from test_utils.test_file import TestStream, TestFileGenerator
+
+from test_utils.test_file import TestStream
 
 
 class TestS3(TestCase):
@@ -44,16 +45,15 @@ class TestS3(TestCase):
         )
 
         gen = S3FileGenerator(
-            TestFileGenerator(
-                (test_stream,)
-            ),
             client,
             resource,
             bucket=bucket,
             seekable=False
+        ).chain(
+            test_stream
         )
 
-        gen = FileInfoGenerator(gen, [SizeCalculated, MD5Calculated])
+        gen = FileInfoGenerator([SizeCalculated, MD5Calculated]).chain(gen)
         for f in gen:
             with self.assertRaises(FileInfoException):
                 # It is not possible to retrieve size from S3FileGenerator before object has been written
@@ -91,17 +91,15 @@ class TestS3(TestCase):
         self.__create_objects(client, bucket, all_files)
 
         gen = S3FileGenerator(
-            (S3PrefixFile(bucket, prefix) for prefix in prefixes),
             client,
             resource,
             seekable=False
-        )
+        ).chain(S3PrefixFile(bucket, prefix) for prefix in prefixes)
 
         for f in gen:
             source_key, source_body = all_files_copy.pop(0)
             self.assertEqual(f.file.read(), source_body)
         self.assertEqual(len(all_files_copy), 0)
-
 
     @mock_s3
     @mock_iam
@@ -119,10 +117,9 @@ class TestS3(TestCase):
 
         self.__create_objects(client, bucket, all_files)
         gen = S3FileGenerator(
-            (S3File(bucket, S3Key(key)) for key, _ in all_files),
             client, resource,
             seekable=False
-        )
+        ).chain((S3File(bucket, S3Key(key)) for key, _ in all_files))
 
         all_files_copy = copy(all_files)
         for f in gen:
@@ -150,12 +147,11 @@ class TestS3(TestCase):
                 self.assertEqual(len(c), length)
 
         signal = False
-        for f in S3FileGenerator((test_stream,),
-                                 client,
+        for f in S3FileGenerator(client,
                                  resource,
                                  bucket=bucket,
                                  seekable=True
-                                 ):
+                                 ).chain(test_stream):
             s3_file = f.file
 
             extract_length = 13 + 42 + 69 + 101 + 404 + 420
@@ -185,15 +181,15 @@ class TestS3(TestCase):
     def test_exceptions(self):
         client, resource, bucket = self.__init_s3()
         with self.assertRaises(SeekException):
-            for f in S3FileGenerator((TestStream(1, 'xyz', reversible=True),), client, resource, bucket=bucket):
+            for f in S3FileGenerator(client, resource, bucket=bucket).chain(TestStream(1, 'xyz', reversible=True)):
                 f.file.seek(0, 3)
 
         with self.assertRaises(FileException):
-            for f in S3FileGenerator((TestStream(1, 'xyz', reversible=True),), client, resource):
+            for f in S3FileGenerator(client, resource).chain(TestStream(1, 'xyz', reversible=True)):
                 f.file.seek(0, 3)
 
         with self.assertRaises(FileException):
-            for f in S3FileGenerator((S3File(bucket, S3Key('x')),), client, resource):
+            for f in S3FileGenerator(client, resource).chain(S3File(bucket, S3Key('x'))):
                 f.file.read(1)
 
     @mock_s3
@@ -218,14 +214,11 @@ class TestS3(TestCase):
         ]
 
         gen = S3FileGenerator(
-            TestFileGenerator(
-                test_streams
-            ),
             client,
             resource,
             bucket=bucket,
             seekable=False
-        )
+        ).chain(test_streams)
 
         # Note: f.meta(S3Version) will raise exception since moto does not give version for multiparts
         # versions = [[f.meta(S3Key), f.file.read() and f.meta(S3Version)] for f in gen]
@@ -240,12 +233,11 @@ class TestS3(TestCase):
         s3_files = [S3File(bucket, key, version) for key, version in versions]
 
         gen = S3FileGenerator(
-            s3_files,
             client,
             resource,
             bucket=bucket,
             seekable=False
-        )
+        ).chain(s3_files)
         for f in gen:
             content = f.file.read()
             self.assertEqual(f.meta(S3Version).value, versions.pop(0)[1].value)

@@ -1,5 +1,6 @@
-from fpipe.generators.fileinfo import FileInfoException, FileMetaCalculator
+from fpipe.exceptions import FileInfoException
 from fpipe.meta.abstract import FileMetaValue
+from fpipe.meta.fileinfo import FileMetaCalculator
 
 
 class Size(FileMetaValue[int]):

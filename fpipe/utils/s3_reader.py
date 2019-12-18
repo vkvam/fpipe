@@ -4,7 +4,7 @@ import math
 import threading
 from typing import Optional, List, Tuple, IO, Iterator, AnyStr, Iterable
 
-from fpipe.file import SeekException, FileException
+from fpipe.exceptions import SeekException, FileException
 
 
 class S3FileReader(IO[bytes]):

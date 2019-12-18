@@ -1,14 +1,11 @@
 import hashlib
 import os
-import time
 
 from unittest import TestCase
 
-from fpipe.generators.fileinfo import FileInfoGenerator
-from fpipe.generators.ftp import FTPFileGenerator, FTPFile
-from fpipe.generators.process import ProcessFileGenerator
-from fpipe.meta.checksum import MD5Calculated
-from fpipe.meta.path import Path
+from fpipe.gen import FileInfoGenerator, ProcessFileGenerator, FTPFileGenerator
+from fpipe.file import FTPFile
+from fpipe.meta import MD5Calculated, Path
 from test_utils.ftp_server import TestFTPServer
 
 
@@ -38,7 +35,7 @@ class TestFTP(TestCase):
             for path, size in files_in.items():
                 with open(path, 'wb') as f:
                     f.write(b'x' * size)
-            gen = FTPFileGenerator(
+            gen = FTPFileGenerator().chain(
                 FTPFile(
                     path,
                     host='localhost',
@@ -50,22 +47,28 @@ class TestFTP(TestCase):
             )
 
             # Checksum of input
-            gen = FileInfoGenerator(gen, [MD5Calculated])
+            gen = FileInfoGenerator([MD5Calculated]).chain(
+                gen
+            )
 
             # Encrypt and decrypt
-            gen = ProcessFileGenerator(
-                gen, "gpg --batch --symmetric --passphrase 'X'"
+            gen = ProcessFileGenerator("gpg --batch --symmetric --passphrase 'X'").chain(
+                gen
             )
 
             # # Checksum of encrypted
-            gen = FileInfoGenerator(gen, [MD5Calculated])
+            gen = FileInfoGenerator([MD5Calculated]).chain(
+                gen
+            )
 
-            gen = ProcessFileGenerator(
-                gen, "gpg --batch --decrypt --passphrase 'X'"
+            gen = ProcessFileGenerator("gpg --batch --decrypt --passphrase 'X'").chain(
+                gen
             )
 
             # # Checksum of decrypted
-            gen = FileInfoGenerator(gen, [MD5Calculated])
+            gen = FileInfoGenerator([MD5Calculated]).chain(
+                gen
+            )
 
             for file_out in gen:
                 content_out = file_out.file.read()

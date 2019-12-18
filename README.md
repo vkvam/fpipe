@@ -23,47 +23,23 @@ pip3 install boto3
 
 ### Getting started
 
-Example that reads a stream, calculates some file info, writes file to disk and prints the original stream to stdout
+Example that reads a stream, calculates md5 and filesize, writes the file to disk and prints the original stream
 ```python
-import io
+from fpipe.gen import FileInfoGenerator, LocalFileGenerator
+from fpipe.file import ByteFile
+from fpipe.meta import Path, SizeCalculated, MD5Calculated
+from fpipe.workflow import WorkFlow
 
-from fpipe.file import FileStream
-from fpipe.generators.fileinfo import FileInfoGenerator
-from fpipe.generators.local import LocalFileGenerator
-from fpipe.meta.path import Path
-from fpipe.meta.checksum import MD5Calculated
-from fpipe.meta.size import SizeCalculated
-
-test_gen = (
-    FileStream(
-        file=io.BytesIO(
-            bytes(name * 2 ** size, encoding='utf-8')
-        ),
-        meta=(
-            Path(f"{name}.txt"),
-        )
-    ) for name, size in (
-        ('x', 4),
-        ('y', 5),
-        ('z', 6)
-    )
+workflow = WorkFlow(
+    LocalFileGenerator(pass_through=True),
+    FileInfoGenerator((SizeCalculated, MD5Calculated))
 )
 
-info_gen = FileInfoGenerator(test_gen, [SizeCalculated, MD5Calculated])
-
-local_gen = LocalFileGenerator(info_gen, pass_through=True)
-
-for f in local_gen:
-    print(f"{'name:':<{10}}{f.meta(Path).value}")
-
-    print(f"{'content:':<{10}}", end='')
-    while True:
-        c = f.file.read(1).decode('utf-8')
-        print(c, end='')
-        if not c:
-            break
-    print(f"\n{'md5:':<{10}}{f.meta(MD5Calculated).value}")
-    print(f"{'size:':<{10}}{f.meta(SizeCalculated).value}\n")
+for f in workflow.start(ByteFile(b'x' * 10, Path('x')), ByteFile(b'y' * 20, Path('y'))):
+    print("name:", f.meta(Path).value)
+    print("content:", f.file.read().decode('utf-8'))
+    print("md5:", f.meta(MD5Calculated).value)
+    print("size:", f.meta(SizeCalculated).value, end="\n\n")
 ```
 
 See unittests for more examples
@@ -84,37 +60,11 @@ twine check dist/*
 ```
 
 
-### Rationale
-NOTE: wip
-
-Unix pipes or chained python generators are ideal when the pipeline does not split and does not require metadata from previous steps.
-
-Working around these challenges may lead to unnecessary complication and caching.
-
-This framework's main intentions are to provide general solutions to the aforementioned challenges through a minimalistic and intuitive API. 
-
-
-
-### Design
-NOTE: wip
-
-The whole framework is built around 2 main concepts:
-- **class File**
-    - Base class for files
-- **class FileGenerator**
-    - Initialized with an iterable of Files and yields a different File 
-
-Files have 3 different type:
-- **class FilePointer(File)**: A pointer to a file that could be used to produce a FileStream
-- **class FileStream(File)**: File that produces a data stream
-- **class FileSeekableStream(FileStream)** File that produces a seekable stream
- 
-In addition we have **class FileMeta** which provides meta-data often needed by FileGenerators to be able to generate files.  
-
 ## Built With
 
-* travis
-* tox
+* [Travis CI](https://travis-ci.org/)
+* [Codecov](https://codecov.io/)
+* [Tox](https://tox.readthedocs.io/)
 
 ## Contributing
 
@@ -124,9 +74,8 @@ Bug-reports and pull requests on github
 Any version change could break the public API (until 1.0.0 release)
  
 
-[Pypi](https://pypi.org/project/fpipe/#history)
-
-[Github](https://github.com/vkvam/fpipe/releases)
+* [Pypi](https://pypi.org/project/fpipe/#history)
+* [Github](https://github.com/vkvam/fpipe/releases)
 
 ## License
     

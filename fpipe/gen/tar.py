@@ -1,25 +1,16 @@
 import tarfile
 from typing import Iterable
 
-from fpipe.file import File, FileStream
-from fpipe.generators.abstract import FileStreamGenerator
-from fpipe.meta.abstract import FileMetaValue
+from fpipe.file.file import FileStream
+from fpipe.gen.abstract import FileStreamGenerator
 from fpipe.meta.path import Path
 from fpipe.meta.size import Size
-
-
-# TODO: Merge with S3Modified
-class ModifiedTar(FileMetaValue[int]):
-    pass
-
-
-class TarFile(File):
-    pass
+from fpipe.meta.tar import ModifiedTar
 
 
 class TarFileGenerator(FileStreamGenerator[FileStream]):
-    def __init__(self, files: Iterable[FileStream]):
-        super().__init__(files)
+    def __init__(self):
+        super().__init__()
 
     def __iter__(self) -> Iterable[FileStream]:
         for source in self.files:

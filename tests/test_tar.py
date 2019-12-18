@@ -4,11 +4,9 @@ from unittest import TestCase
 
 from typing import Tuple
 
-from fpipe.file import FileStream
-from fpipe.generators.process import ProcessFileGenerator
-from fpipe.generators.tar import ModifiedTar, TarFileGenerator
-from fpipe.meta.path import Path
-from fpipe.meta.size import Size
+from fpipe.file.file import FileStream
+from fpipe.gen import ProcessFileGenerator, TarFileGenerator
+from fpipe.meta import ModifiedTar, Path, Size
 from test_utils.test_file import ReversibleTestFile
 
 FILE_NAME = "test.json"
@@ -46,12 +44,9 @@ class TestTar(TestCase):
 
         source_file_content = [(f.seek() or f.read(), p, s, t) for f, p, s, t in source_files]
 
-        tar_stream = FileStream(f)
-
         # Pass it through ProcessFileGenerator to ensure we are working with a non-seekable stream
-        proc = ProcessFileGenerator((tar_stream,), cmd='cat /dev/stdin')
-        proc = TarFileGenerator(proc)
-        for f in proc:
+        proc = ProcessFileGenerator(cmd='cat /dev/stdin').chain(FileStream(f))
+        for f in TarFileGenerator().chain(proc):
             source_content, source_path, source_size, source_time = source_file_content.pop(0)
             self.assertEqual(source_content, f.file.read())
             self.assertEqual(source_path, f.meta(Path).value)

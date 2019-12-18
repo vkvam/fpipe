@@ -5,6 +5,7 @@ from unittest import TestCase
 from fpipe.gen import ProcessFileGenerator, FileInfoGenerator
 from fpipe.meta import MD5Calculated, Path,  SizeCalculated
 from fpipe.exceptions import FileInfoException
+from fpipe.workflow import WorkFlow
 from test_utils.test_file import ReversibleTestFile, TestStream
 
 
@@ -15,7 +16,7 @@ class TestMeta(TestCase):
         sig.update(data)
         return sig.hexdigest()
 
-    def test_chaining_test_stream(self):
+    def test_workflow(self):
         stream_sizes = [2 ** i for i in range(18, 22)]
 
         # Get expected results from FileInfoGenerators
@@ -28,15 +29,12 @@ class TestMeta(TestCase):
         ]
 
         # Get checksum for initial files
-        gen = FileInfoGenerator([MD5Calculated, SizeCalculated]).chain(
-            TestStream(s, f'{s}', reversible=True) for s in stream_sizes
+        workflow = WorkFlow(
+            FileInfoGenerator([MD5Calculated, SizeCalculated]),
+            ProcessFileGenerator("rev|tr -d '\n'"),
+            FileInfoGenerator([MD5Calculated, SizeCalculated])
         )
-
-        # Reverse stdout
-        gen = ProcessFileGenerator("rev|tr -d '\n'").chain(gen)
-
-        # Get checksum for reversed files
-        for f in FileInfoGenerator([MD5Calculated, SizeCalculated]).chain(gen):
+        for f in workflow.start(TestStream(s, f'{s}', reversible=True) for s in stream_sizes):
             f.file.read(1)
             # Assert that we are not able to retrieve calculated data before files have been completely read
             with self.assertRaises(FileInfoException):

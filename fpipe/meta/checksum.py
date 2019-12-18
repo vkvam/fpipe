@@ -1,6 +1,7 @@
 import hashlib
 
-from fpipe.generators.fileinfo import FileInfoException, FileMetaCalculator
+from fpipe.exceptions import FileInfoException
+from fpipe.meta.fileinfo import FileMetaCalculator
 
 
 class MD5Calculated(FileMetaCalculator[str]):

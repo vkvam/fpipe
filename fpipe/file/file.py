@@ -1,14 +1,6 @@
-from typing import Optional, Type, IO, Iterable
+from typing import Optional, Type, IO, Iterable, Union
 
 from fpipe.meta.abstract import FileMeta, MetaMap, T
-
-
-class SeekException(Exception):
-    pass
-
-
-class FileException(Exception):
-    pass
 
 
 class File:
@@ -40,8 +32,8 @@ class FileStream(File):
     def __init__(self,
                  file: IO[bytes],
                  parent: Optional['File'] = None,
-                 meta: Iterable[FileMeta] = ()):
-        super().__init__(parent=parent, meta=meta)
+                 meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None):
+        super().__init__(parent=parent, meta=[meta] if isinstance(meta, FileMeta) else meta)
         self.__f = file
 
     @property

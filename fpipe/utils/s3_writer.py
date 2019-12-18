@@ -1,12 +1,11 @@
-from queue import Queue
 import threading
-
-from botocore.client import BaseClient
 from concurrent.futures import ThreadPoolExecutor
-
-from fpipe.utils.part_buffer import Buffer
+from queue import Queue
 from typing import IO, AnyStr, List, Optional, Iterable, Iterator
 
+from botocore.client import BaseClient
+
+from fpipe.utils.part_buffer import Buffer
 from fpipe.utils.s3_writer_worker import S3FileProgress, worker
 
 

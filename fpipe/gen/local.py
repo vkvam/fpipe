@@ -1,27 +1,24 @@
 import threading
 from typing import Union, Iterable, Callable
 
-from fpipe.file import File, FileStream, SeekableFileStream, FileMeta
-from fpipe.generators.abstract import FileStreamGenerator, IncompatibleFileTypeException
+from fpipe.file.file import File, FileStream, SeekableFileStream
+from fpipe.file.local import LocalFile
+from fpipe.gen.abstract import FileStreamGenerator, IncompatibleFileTypeException
 from fpipe.meta.path import Path
 from fpipe.utils.bytesloop import BytesLoop
 
 
-class LocalFile(File):
-    def __init__(self, path):
-        super().__init__(meta=[Path(path)])
-
-
 class LocalFileGenerator(FileStreamGenerator):
-    def __init__(self, files: Iterable[Union[LocalFile, FileStream]], pass_through=False,
-                 pathname_resolver: Callable[[File], str] = None):
+    def __init__(self,
+                 pass_through=False,
+                 pathname_resolver: Callable[[File], str] = None
+                 ):
         """
-
         :param files: iterator with files to process
         :param pass_through: pass through the source instead of waiting for writes to complete
         :param pathname_resolver: a function that sets the path for files written
         """
-        super().__init__(files)
+        super().__init__()
         self.pass_through = pass_through
         self.pathname_resolver = pathname_resolver
 

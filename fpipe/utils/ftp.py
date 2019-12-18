@@ -24,15 +24,6 @@ class FTPClient(object):
         ftp.login(user=self.user, passwd=self.passwd)
         return ftp
 
-    # def get_file_size(self, path):
-    #     ftp = self._get_session()
-    #     try:
-    #         return ftp.size(path)
-    #     except Exception as e:
-    #         logging.exception("Failed getting ftp filesize", exc_info=e)
-    #     finally:
-    #         ftp.close()
-
     def write_to_file_threaded(self, path):
         thread = threading.Thread(target=self.write_to_file, args=(path,), daemon=True)
         thread.start()
