@@ -1,8 +1,8 @@
 [![Build Status](https://api.travis-ci.org/vkvam/fpipe.svg?branch=master)](https://travis-ci.org/vkvam/fpipe)
 [![codecov](https://codecov.io/gh/vkvam/fpipe/branch/master/graph/badge.svg)](https://codecov.io/gh/vkvam/fpipe)
-[![PyPI version](https://badge.fury.io/py/fpipe.svg)](https://badge.fury.io/py/fpipe)
+[![PyPI](https://img.shields.io/pypi/v/fpipe)](https://pypi.org/project/fpipe/)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/fpipe)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-
 # fPipe
 
 python framework for data manipulation and metadata extraction built around the python file-like api.
@@ -12,10 +12,11 @@ python framework for data manipulation and metadata extraction built around the 
 
 ### Installing
 
-Designed for python 3.7, for S3 support you need boto3
+for S3 support you need boto3
 
 ```bash
 brew install python3
+# apt, yum, apk...
 pip3 install fpipe
 # Optional
 pip3 install boto3
@@ -52,7 +53,7 @@ To run tests install tox and twine with pip, go to project root and run tox
 # Activate virtualenv
 source .venv/bin/activate
 # Run tests
-tox
+tox -e py37
 # Build distribution
 python setup.py sdist bdist_wheel
 # Validate distribution
