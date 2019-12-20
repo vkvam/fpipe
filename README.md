@@ -7,12 +7,12 @@
 
 fpipe is a simple framework for creating data manipulation/validation pipelines around the python file-like api.
 
-The need to cache files on disk between different file transformation quickly becomes an issue when speed and hardware concerns are a factor and unix pipes are not able to deal with the pipeline complexity.
+The need to cache files on disk between different file transformations quickly becomes an issue when speed and hardware concerns are a factor, and unix pipes are not able to deal with the pipeline complexity.
 
 An example is unpacking a tar file from a remote source (e.g. s3/ftp/http) and storing it to another remote store.
 A unix pipe is not able to output the files within the tar in addition to metadata about the file, so we can not set or modify the target path.
 
-A solution using fPipe could look like this:
+A proposed solution using fPipe:
 ```
 client = boto3.client('s3')
 resource = boto3.resource('s3')
@@ -30,6 +30,8 @@ WorkFlow(
     S3File(bucket, S3Key(key))
 ).flush()
 ```
+
+*The framework is functional, but in the early stages, so any feedback on alternatives, usefulness, api-design, etc. would be appreciated*
 
 ### Installing
 
