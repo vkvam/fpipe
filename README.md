@@ -46,7 +46,9 @@ for stream in workflow.compose(ByteFile(b'x' * 10, Path('x.dat')), ByteFile(b'y'
     print("Stream md5:", stream.meta(MD5Calculated).value)
     print("Stream size:", stream.meta(SizeCalculated).value)
 ```
-*Stores original stream, calculates md5, encrypts, stores, calculates md5, decrypts and stores. Using flush_iter() we know all files have been completely read(), so MD5Calculated will be readable.*
+
+##### Subprocess script example
+*Stores original stream, calculates md5, encrypts using cli, stores, calculates md5, decrypts using cli and stores. Using flush_iter() we know all files have been completely read(), so MD5Calculated will be readable.*
 
 ```python
 from fpipe.file import ByteFile
