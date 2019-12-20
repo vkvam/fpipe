@@ -1,10 +1,13 @@
+import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
-from typing import IO, AnyStr, List, Optional, Iterable, Iterator
+from typing import IO, AnyStr, List, Optional, Iterable, Iterator, Type
 
 from botocore.client import BaseClient
+from botocore.exceptions import ClientError, ParamValidationError, BotoCoreError
 
+from fpipe.exceptions import S3WriteException
 from fpipe.utils.part_buffer import Buffer
 from fpipe.utils.s3_writer_worker import S3FileProgress, worker
 
@@ -88,29 +91,50 @@ class S3FileWriter(IO[bytes], ThreadPoolExecutor):
         if self.buffer.full():
             self.work_queue.put(self.buffer.get(), timeout=self.queue_timeout)
 
-    def __exit__(self, *args, **xargs):
-        return self.close()
+    def __exit__(self, t: Optional[Type[BaseException]], value: Optional[BaseException],
+                 traceback: Optional) -> bool:
+        try:
+            self.close()
+            return t is None
+        except (ClientError, S3WriteException):
+            self.abort()
+            raise
+
+    def abort(self):
+        try:
+            self.stop_workers_request.set()
+            self.shutdown()
+        finally:
+            self.client.abort_multipart_upload(
+                Bucket=self.bucket,
+                Key=self.key,
+                UploadId=self.mpu['UploadId']
+            )
 
     def close(self):
-        if not self.buffer.empty():
-            self.work_queue.put(self.buffer.get(), timeout=self.queue_timeout)
+        try:
+            if not self.buffer.empty():
+                self.work_queue.put(self.buffer.get(), timeout=self.queue_timeout)
 
-        self.stop_workers_request.set()
-        self.work_queue.join()
+            self.stop_workers_request.set()
+            self.work_queue.join()
 
-        results = []
+            results = []
+            while not self.result_queue.empty():
+                results.append(self.result_queue.get_nowait())
 
-        while not self.result_queue.empty():
-            results.append(self.result_queue.get_nowait())
+            results.sort(key=lambda x: x['PartNumber'])
+            self.mpu_res = self.client.complete_multipart_upload(UploadId=self.mpu['UploadId'],
+                                                                 MultipartUpload={'Parts': results},
+                                                                 Bucket=self.bucket,
+                                                                 Key=self.key)
 
-        results.sort(key=lambda x: x['PartNumber'])
-        self.mpu_res = self.client.complete_multipart_upload(UploadId=self.mpu['UploadId'],
-                                                             MultipartUpload={'Parts': results},
-                                                             Bucket=self.bucket,
-                                                             Key=self.key)
-
-        self.progress_queue.put(S3FileProgress("Multipart", "Multipart upload complete"))
-        return True
+            self.progress_queue.put(S3FileProgress("Multipart", "Multipart upload complete"))
+            self.shutdown()
+        except BotoCoreError:
+            raise
+        except Exception as e:
+            raise S3WriteException("Could not close Multipart upload") from e
 
     # TODO: Fix all under
     def readable(self) -> bool:

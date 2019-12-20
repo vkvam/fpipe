@@ -5,7 +5,7 @@ from unittest import TestCase
 from typing import IO, Iterable, List
 
 from fpipe.exceptions import SeekException, FileException, FileInfoException
-from fpipe.gen import FileInfoGenerator, S3FileGenerator
+from fpipe.gen import MetaGen, S3Gen
 from fpipe.file import S3File, S3PrefixFile
 from fpipe.meta import MD5Calculated, S3Key, S3Size, S3Mime, S3Modified, S3Version, SizeCalculated
 
@@ -44,7 +44,7 @@ class TestS3(TestCase):
             'xyz'
         )
 
-        gen = S3FileGenerator(
+        gen = S3Gen(
             client,
             resource,
             bucket=bucket,
@@ -53,13 +53,13 @@ class TestS3(TestCase):
             test_stream
         )
 
-        gen = FileInfoGenerator([SizeCalculated, MD5Calculated]).chain(gen)
+        gen = MetaGen(SizeCalculated, MD5Calculated).chain(gen)
         for f in gen:
             with self.assertRaises(FileInfoException):
                 # It is not possible to retrieve size from S3FileGenerator before object has been written
                 x = f.parent.meta(S3Size).value
             with self.assertRaises(FileInfoException):
-                # It is not possible to retrieve size from FileInfoGenerator before the complete stream has been read
+                # It is not possible to retrieve size from FileMetaGenerator before the complete stream has been read
                 x = f.meta(MD5Calculated).value
             cnt = f.file.read()
             test_stream.file.seek(0)
@@ -90,7 +90,7 @@ class TestS3(TestCase):
 
         self.__create_objects(client, bucket, all_files)
 
-        gen = S3FileGenerator(
+        gen = S3Gen(
             client,
             resource,
             seekable=False
@@ -116,7 +116,7 @@ class TestS3(TestCase):
         ]
 
         self.__create_objects(client, bucket, all_files)
-        gen = S3FileGenerator(
+        gen = S3Gen(
             client, resource,
             seekable=False
         ).chain((S3File(bucket, S3Key(key)) for key, _ in all_files))
@@ -147,11 +147,11 @@ class TestS3(TestCase):
                 self.assertEqual(len(c), length)
 
         signal = False
-        for f in S3FileGenerator(client,
-                                 resource,
-                                 bucket=bucket,
-                                 seekable=True
-                                 ).chain(test_stream):
+        for f in S3Gen(client,
+                       resource,
+                       bucket=bucket,
+                       seekable=True
+                       ).chain(test_stream):
             s3_file = f.file
 
             extract_length = 13 + 42 + 69 + 101 + 404 + 420
@@ -181,15 +181,15 @@ class TestS3(TestCase):
     def test_exceptions(self):
         client, resource, bucket = self.__init_s3()
         with self.assertRaises(SeekException):
-            for f in S3FileGenerator(client, resource, bucket=bucket).chain(TestStream(1, 'xyz', reversible=True)):
+            for f in S3Gen(client, resource, bucket=bucket).chain(TestStream(1, 'xyz', reversible=True)):
                 f.file.seek(0, 3)
 
         with self.assertRaises(FileException):
-            for f in S3FileGenerator(client, resource).chain(TestStream(1, 'xyz', reversible=True)):
+            for f in S3Gen(client, resource).chain(TestStream(1, 'xyz', reversible=True)):
                 f.file.seek(0, 3)
 
         with self.assertRaises(FileException):
-            for f in S3FileGenerator(client, resource).chain(S3File(bucket, S3Key('x'))):
+            for f in S3Gen(client, resource).chain(S3File(bucket, S3Key('x'))):
                 f.file.read(1)
 
     @mock_s3
@@ -213,7 +213,7 @@ class TestS3(TestCase):
             ) for size in sizes
         ]
 
-        gen = S3FileGenerator(
+        gen = S3Gen(
             client,
             resource,
             bucket=bucket,
@@ -232,7 +232,7 @@ class TestS3(TestCase):
 
         s3_files = [S3File(bucket, key, version) for key, version in versions]
 
-        gen = S3FileGenerator(
+        gen = S3Gen(
             client,
             resource,
             bucket=bucket,

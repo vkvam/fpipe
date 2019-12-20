@@ -1,14 +1,15 @@
 import threading
-from typing import Union, Iterable, Callable
+from typing import Union, Iterable, Callable, Optional
 
 from fpipe.file.file import File, FileStream, SeekableFileStream
 from fpipe.file.local import LocalFile
-from fpipe.gen.abstract import FileStreamGenerator, IncompatibleFileTypeException
+from fpipe.gen.callable import CallableGen, CallableResponse
 from fpipe.meta.path import Path
 from fpipe.utils.bytesloop import BytesLoop
 
 
-class LocalFileGenerator(FileStreamGenerator):
+class LocalGen(CallableGen[FileStream]):
+
     def __init__(self,
                  pass_through=False,
                  pathname_resolver: Callable[[File], str] = None
@@ -22,38 +23,32 @@ class LocalFileGenerator(FileStreamGenerator):
         self.pass_through = pass_through
         self.pathname_resolver = pathname_resolver
 
-    def __iter__(self) -> Iterable[Union[SeekableFileStream, FileStream]]:
-        for source in self.files:
-            if isinstance(source, LocalFile):
-                with open(source.meta(Path).value, 'rb') as f:
-                    yield SeekableFileStream(f, parent=source)
-            elif isinstance(source, FileStream):
+    def __process(self, source: FileStream, path_name: str, byte_loop: Optional[BytesLoop] = None):
+        with open(path_name, 'wb') as f2:
+            while True:
+                b = source.file.read(2 ** 14)
+                if byte_loop:
+                    byte_loop.write(b)
+                f2.write(b)
+                if not b:
+                    break
 
-                def __process(byte_loop=None):
-                    path_name = self.pathname_resolver(
-                        source
-                    ) if self.pathname_resolver else source.meta(Path).value
+    def executor(self, source: File):
+        if isinstance(source, LocalFile):
+            with open(source.meta(Path).value, 'rb') as f:
+                yield CallableResponse(SeekableFileStream(f, parent=source))
+        elif isinstance(source, FileStream):
+            path_name = self.pathname_resolver(
+                source
+            ) if self.pathname_resolver else source.meta(Path).value
 
-                    with open(path_name, 'wb') as f2:
-                        while True:
-                            b = source.file.read(2 ** 14)
-                            if byte_loop:
-                                byte_loop.write(b)
-                            f2.write(b)
-                            if not b:
-                                break
-
-                if self.pass_through:
-                    pass_through = BytesLoop()
-                    proc_thread = threading.Thread(target=__process,
-                                                   args=(pass_through,),
+            if self.pass_through:
+                with BytesLoop() as byte_loop:
+                    proc_thread = threading.Thread(target=self.__process,
+                                                   args=(source, path_name, byte_loop),
                                                    name=f'{self.__class__.__name__}', daemon=True)
-                    proc_thread.start()
-                    yield FileStream(pass_through, parent=source)
-                    proc_thread.join()
-                else:
-                    __process()
-                    with open(source.meta(Path).value, 'rb') as f:
-                        yield SeekableFileStream(f, parent=source)
+                    yield CallableResponse(FileStream(byte_loop, parent=source), proc_thread)
             else:
-                raise IncompatibleFileTypeException(source)
+                self.__process(source, path_name)
+                with open(source.meta(Path).value, 'rb') as f:
+                    yield CallableResponse(SeekableFileStream(f, parent=source))

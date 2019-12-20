@@ -4,7 +4,6 @@ from typing import Iterable, IO, Optional, Type, AnyStr
 
 from fpipe.file.file import FileStream
 from fpipe.exceptions import SeekException
-from fpipe.gen.abstract import FileStreamGenerator
 from fpipe.meta.path import Path
 
 

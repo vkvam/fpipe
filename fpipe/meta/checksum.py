@@ -1,7 +1,7 @@
 import hashlib
 
 from fpipe.exceptions import FileInfoException
-from fpipe.meta.fileinfo import FileMetaCalculator
+from fpipe.meta.abstract import FileMetaCalculator
 
 
 class MD5Calculated(FileMetaCalculator[str]):
@@ -21,4 +21,4 @@ class MD5Calculated(FileMetaCalculator[str]):
         if self.done:
             return self.v
         else:
-            raise FileInfoException("?!")  # TODO: Fix
+            raise FileInfoException(self)

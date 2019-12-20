@@ -2,7 +2,7 @@ import hashlib
 
 from unittest import TestCase
 
-from fpipe.gen import ProcessFileGenerator, FileInfoGenerator
+from fpipe.gen import ProcessGen, MetaGen
 from fpipe.meta import MD5Calculated, Path,  SizeCalculated
 from fpipe.exceptions import FileInfoException
 from test_utils.test_file import ReversibleTestFile, TestStream
@@ -18,7 +18,7 @@ class TestMeta(TestCase):
     def test_chaining_test_stream(self):
         stream_sizes = [2 ** i for i in range(18, 22)]
 
-        # Get expected results from FileInfoGenerators
+        # Get expected results from FileMetaGenerators
         md5_of_files = [
             self.__checksum(ReversibleTestFile(s).read()) for s in stream_sizes
         ]
@@ -28,15 +28,15 @@ class TestMeta(TestCase):
         ]
 
         # Get checksum for initial files
-        gen = FileInfoGenerator([MD5Calculated, SizeCalculated]).chain(
+        gen = MetaGen(MD5Calculated, SizeCalculated).chain(
             TestStream(s, f'{s}', reversible=True) for s in stream_sizes
         )
 
         # Reverse stdout
-        gen = ProcessFileGenerator("rev|tr -d '\n'").chain(gen)
+        gen = ProcessGen("rev|tr -d '\n'").chain(gen)
 
         # Get checksum for reversed files
-        for f in FileInfoGenerator([MD5Calculated, SizeCalculated]).chain(gen):
+        for f in MetaGen(MD5Calculated, SizeCalculated).chain(gen):
             f.file.read(1)
             # Assert that we are not able to retrieve calculated data before files have been completely read
             with self.assertRaises(FileInfoException):

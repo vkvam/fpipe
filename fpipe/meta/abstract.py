@@ -5,7 +5,6 @@ T = TypeVar('T')
 
 
 class FileMeta(Generic[T]):
-
     @property
     @abstractmethod
     def value(self) -> T:
@@ -31,3 +30,15 @@ class MetaMap:
 
     def __getitem__(self, t: Type[T]) -> T:
         return cast(T, self.metas[t])
+
+
+class FileMetaCalculator(FileMeta[T]):
+
+    @abstractmethod
+    def write(self, b: bytes) -> bool:
+        """
+
+        :param b: bytes to use for calculations
+        :return: true when calculations are complete
+        """
+        pass

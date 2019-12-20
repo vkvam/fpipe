@@ -1,6 +1,5 @@
 from fpipe.exceptions import FileInfoException
-from fpipe.meta.abstract import FileMetaValue
-from fpipe.meta.fileinfo import FileMetaCalculator
+from fpipe.meta.abstract import FileMetaValue, FileMetaCalculator
 
 
 class Size(FileMetaValue[int]):
@@ -22,4 +21,4 @@ class SizeCalculated(FileMetaCalculator[int]):
         if self.done:
             return self.v
         else:
-            raise FileInfoException("?!")  # TODO: Fix
+            raise FileInfoException(self)

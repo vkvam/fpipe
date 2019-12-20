@@ -1,13 +1,13 @@
 import ftplib
 import socket
 import threading
+from typing import IO
 
 from fpipe.utils.bytesloop import BytesLoop
 
 
 class FTPClient(object):
     def __init__(self, host, username, password, blocksize=None, timeout=None, port=21):
-        self.bytes_io = BytesLoop(blocksize)
         self.host = host
         self.port = port
         self.user = username
@@ -25,18 +25,18 @@ class FTPClient(object):
         return ftp
 
     def write_to_file_threaded(self, path):
-        thread = threading.Thread(target=self.write_to_file, args=(path,), daemon=True)
-        thread.start()
-        return thread
+        with BytesLoop(self.blocksize) as bytes_io:
+            thread = threading.Thread(target=self.write_to_file, args=(path, bytes_io), daemon=True)
+            return thread, bytes_io
 
-    def write_to_file(self, path: str):
+    def write_to_file(self, path: str, bytes_io: IO[bytes]):
         ftp = self._get_session()
         exception = None
 
         try:
-            ftp.retrbinary('RETR ' + path, self.bytes_io.write, blocksize=self.blocksize)
+            ftp.retrbinary('RETR ' + path, bytes_io.write, blocksize=self.blocksize)
             # For some reason retrbinary does not send EOF
-            self.bytes_io.write(b'')
+            bytes_io.write(b'')
         except socket.timeout as e:
             exception = e
         finally:

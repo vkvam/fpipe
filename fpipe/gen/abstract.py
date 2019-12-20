@@ -12,14 +12,25 @@ class FileGenerator(Generic[T]):
     """
 
     def __init__(self):
-        self.sources: List[Union[Iterable[T], T]] = []
+        self.sources: List[Union[Iterable[File], File]] = []
 
     def reset(self):
         self.sources.clear()
 
-    def chain(self, source: Union[Iterable[T], T]) -> 'FileGenerator':
+    def chain(self, source: Union[Iterable[File], File]) -> 'FileGenerator[T]':
         self.sources.append(source)
         return self
+
+    def flush(self) -> None:
+        for f in self:
+            if isinstance(f, FileStream):
+                f.file.flush()
+
+    def flush_iter(self) -> Iterable[T]:
+        for f in self:
+            if isinstance(f, FileStream):
+                f.file.flush()
+                yield f
 
     @property
     def files(self) -> Iterable[T]:
@@ -35,20 +46,6 @@ class FileGenerator(Generic[T]):
     @abstractmethod
     def __iter__(self) -> Iterable[T]:
         raise NotImplementedError
-
-
-class FileStreamGenerator(FileGenerator[T]):
-    """
-    A class that generates streams based on an input
-    """
-
-    @abstractmethod
-    def __iter__(self) -> Iterable[T]:
-        pass
-
-    def flush(self):
-        for f in self:
-            f.file.flush()
 
 
 class IncompatibleFileTypeException(Exception):

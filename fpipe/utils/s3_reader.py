@@ -2,7 +2,7 @@
 
 import math
 import threading
-from typing import Optional, List, Tuple, IO, Iterator, AnyStr, Iterable
+from typing import Optional, List, Tuple, IO, Iterator, AnyStr, Iterable, Type
 
 from fpipe.exceptions import SeekException, FileException
 
@@ -54,9 +54,10 @@ class S3FileReader(IO[bytes]):
     def __enter__(self) -> 'S3FileReader':
         return self
 
-    def __exit__(self, *args, **xargs):
+    def __exit__(self, t: Optional[Type[BaseException]], value: Optional[BaseException],
+                 traceback: Optional) -> bool:
         self.close()
-        return True
+        return t is None
 
     def __initialize(self):
         if self.version:

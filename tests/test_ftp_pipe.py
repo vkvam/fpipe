@@ -3,7 +3,7 @@ import os
 
 from unittest import TestCase
 
-from fpipe.gen import FileInfoGenerator, ProcessFileGenerator, FTPFileGenerator
+from fpipe.gen import MetaGen, ProcessGen, FTPGen
 from fpipe.file import FTPFile
 from fpipe.meta import MD5Calculated, Path
 from test_utils.ftp_server import TestFTPServer
@@ -35,7 +35,7 @@ class TestFTP(TestCase):
             for path, size in files_in.items():
                 with open(path, 'wb') as f:
                     f.write(b'x' * size)
-            gen = FTPFileGenerator().chain(
+            gen = FTPGen().chain(
                 FTPFile(
                     path,
                     host='localhost',
@@ -47,26 +47,26 @@ class TestFTP(TestCase):
             )
 
             # Checksum of input
-            gen = FileInfoGenerator([MD5Calculated]).chain(
+            gen = MetaGen(MD5Calculated).chain(
                 gen
             )
 
             # Encrypt and decrypt
-            gen = ProcessFileGenerator("gpg --batch --symmetric --passphrase 'X'").chain(
+            gen = ProcessGen("gpg --batch --symmetric --passphrase 'X'").chain(
                 gen
             )
 
             # # Checksum of encrypted
-            gen = FileInfoGenerator([MD5Calculated]).chain(
+            gen = MetaGen(MD5Calculated).chain(
                 gen
             )
 
-            gen = ProcessFileGenerator("gpg --batch --decrypt --passphrase 'X'").chain(
+            gen = ProcessGen("gpg --batch --decrypt --passphrase 'X'").chain(
                 gen
             )
 
             # # Checksum of decrypted
-            gen = FileInfoGenerator([MD5Calculated]).chain(
+            gen = MetaGen(MD5Calculated).chain(
                 gen
             )
 

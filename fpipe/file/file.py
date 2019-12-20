@@ -6,9 +6,10 @@ from fpipe.meta.abstract import FileMeta, MetaMap, T
 class File:
     def __init__(self,
                  parent: Optional['File'] = None,
-                 meta: Iterable[FileMeta] = ()):
+                 meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None):
         self.parent = parent
         self.meta_map = MetaMap()
+        meta = [meta] if isinstance(meta, FileMeta) else meta
         if meta:
             for m in meta:
                 self.meta_map.set(m)
@@ -33,7 +34,7 @@ class FileStream(File):
                  file: IO[bytes],
                  parent: Optional['File'] = None,
                  meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None):
-        super().__init__(parent=parent, meta=[meta] if isinstance(meta, FileMeta) else meta)
+        super().__init__(parent=parent, meta=meta)
         self.__f = file
 
     @property

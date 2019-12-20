@@ -2,7 +2,7 @@ import hashlib
 
 from unittest import TestCase
 
-from fpipe.gen import ProcessFileGenerator, FileInfoGenerator
+from fpipe.gen import ProcessGen, MetaGen
 from fpipe.meta import MD5Calculated, Path,  SizeCalculated
 from fpipe.exceptions import FileInfoException
 from fpipe.workflow import WorkFlow
@@ -19,7 +19,7 @@ class TestMeta(TestCase):
     def test_workflow(self):
         stream_sizes = [2 ** i for i in range(18, 22)]
 
-        # Get expected results from FileInfoGenerators
+        # Get expected results from FileMetaGenerators
         md5_of_files = [
             self.__checksum(ReversibleTestFile(s).read()) for s in stream_sizes
         ]
@@ -30,11 +30,11 @@ class TestMeta(TestCase):
 
         # Get checksum for initial files
         workflow = WorkFlow(
-            FileInfoGenerator([MD5Calculated, SizeCalculated]),
-            ProcessFileGenerator("rev|tr -d '\n'"),
-            FileInfoGenerator([MD5Calculated, SizeCalculated])
+            MetaGen(MD5Calculated, SizeCalculated),
+            ProcessGen("rev|tr -d '\n'"),
+            MetaGen(MD5Calculated, SizeCalculated)
         )
-        for f in workflow.start(TestStream(s, f'{s}', reversible=True) for s in stream_sizes):
+        for f in workflow.compose(TestStream(s, f'{s}', reversible=True) for s in stream_sizes):
             f.file.read(1)
             # Assert that we are not able to retrieve calculated data before files have been completely read
             with self.assertRaises(FileInfoException):

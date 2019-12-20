@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from fpipe.meta import SizeCalculated, MD5Calculated
-from fpipe.gen import FileInfoGenerator, ProcessFileGenerator
+from fpipe.gen import MetaGen, ProcessGen
 from fpipe.exceptions import FileInfoException
 from test_utils.test_file import TestStream
 
@@ -12,8 +12,8 @@ class TestFileIO(TestCase):
 
         signal = False
 
-        for file in FileInfoGenerator([SizeCalculated, MD5Calculated]).chain(
-                ProcessFileGenerator(
+        for file in MetaGen(SizeCalculated, MD5Calculated).chain(
+                ProcessGen(
                     "cat /dev/stdin"
                 ).chain(
                         TestStream(

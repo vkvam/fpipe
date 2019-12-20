@@ -1,22 +1,33 @@
-from typing import Iterable, List, Union
+from typing import Iterable, List, Union, Optional
 
 from fpipe.file import File
 from fpipe.gen.abstract import FileGenerator
 
 
 class WorkFlow:
-    def __init__(self, *generators: FileGenerator):
+    def __init__(self, first_gen: FileGenerator, *generators: FileGenerator):
+        self.first_gen: FileGenerator = first_gen
         self.generators: List[FileGenerator] = [*generators]
+        self.last_gen: Optional[FileGenerator] = None
 
-    def start(self, *source: Union[File, Iterable[File]]):
-        last_gen = self.generators[0]
-        last_gen.reset()
+    def compose(self, *source: Union[File, Iterable[File]]) -> FileGenerator:
+        """
+        Sets up the workflow, but will not process anything before returned files are read from.
+
+        :param source: A collection of File or generators of File to run the workflow with
+        :return: the output FileGenerator of the workflow
+        """
+
+        previous_gen = self.first_gen
+
+        previous_gen.reset()
         for s in source:
-            last_gen.chain(s)
+            previous_gen.chain(s)
 
-        for gen in self.generators[1:]:
-            if last_gen:
+        for gen in self.generators:
+            if previous_gen:
                 gen.reset()
-                gen.chain(last_gen)
-            last_gen = gen
-        return last_gen
+                gen.chain(previous_gen)
+            previous_gen = gen
+        self.last_gen = previous_gen
+        return previous_gen

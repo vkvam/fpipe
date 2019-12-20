@@ -1,10 +1,9 @@
 import threading
 from time import sleep
-from types import TracebackType
-from typing import BinaryIO, Optional, Type, Iterator, AnyStr, Iterable, List
+from typing import IO, Optional, Type, Iterator, AnyStr, Iterable, List
 
 
-class BytesLoop(BinaryIO):
+class BytesLoop(IO[bytes]):
     def __init__(self, buf_size=2 ** 14, lock_wait=0.00001):
         self.buffer = bytearray()
         self.done = False
@@ -12,10 +11,6 @@ class BytesLoop(BinaryIO):
         self.buf_size = buf_size
         self.lock_wait = lock_wait
         # self.stats = Stats(self.__class__.__name__)
-
-    def reset(self):
-        self.done = False
-        self.buffer.clear()
 
     def __r(self, n=None):
         self.lock.acquire()
@@ -65,22 +60,27 @@ class BytesLoop(BinaryIO):
                 self.lock.release()
                 sleep(self.lock_wait)
 
-    def __enter__(self) -> BinaryIO:
-        raise NotImplementedError()
+    def __enter__(self) -> IO[bytes]:
+        return self
 
     def close(self) -> None:
-        raise NotImplementedError()
+        self.done = False
+        self.buffer.clear()
 
     def fileno(self) -> int:
         raise NotImplementedError()
 
     def flush(self) -> None:
-        raise NotImplementedError()
+        while self.read(self.buf_size):
+            pass
 
     def isatty(self) -> bool:
         return False
 
     def readable(self) -> bool:
+        return True
+
+    def writable(self) -> bool:
         return True
 
     def readline(self, limit: int = ...) -> AnyStr:
@@ -101,9 +101,6 @@ class BytesLoop(BinaryIO):
     def truncate(self, size: Optional[int] = ...) -> int:
         raise NotImplementedError()
 
-    def writable(self) -> bool:
-        raise NotImplementedError()
-
     def writelines(self, lines: Iterable[AnyStr]) -> None:
         raise NotImplementedError()
 
@@ -114,5 +111,6 @@ class BytesLoop(BinaryIO):
         raise NotImplementedError()
 
     def __exit__(self, t: Optional[Type[BaseException]], value: Optional[BaseException],
-                 traceback: Optional[TracebackType]) -> bool:
-        raise NotImplementedError()
+                 traceback: Optional) -> bool:
+        self.close()
+        return t is None
