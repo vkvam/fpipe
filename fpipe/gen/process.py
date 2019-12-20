@@ -1,6 +1,6 @@
 import subprocess
 import threading
-from typing import Iterable, Optional, Generator
+from typing import Optional, Generator
 
 from fpipe.file import File
 from fpipe.file.file import FileStream
@@ -10,10 +10,13 @@ from fpipe.utils.bytesloop import BytesLoop
 
 class ProcessGen(CallableGen[FileStream]):
 
-    def __init__(self, cmd, buf_size=2 ** 14):
+    def __init__(self, cmd, buf_size=2 ** 14, std_err=False):
         super().__init__()
         self.cmd = cmd
         self.buf_size = buf_size
+        self.std_err = std_err
+        if std_err:
+            raise NotImplementedError("Handling of stderr currently not supported")
 
     @staticmethod
     def __std_in_to_cmd(source: FileStream, proc, buf_size):
@@ -43,8 +46,9 @@ class ProcessGen(CallableGen[FileStream]):
 
         with BytesLoop(self.buf_size) as byte_loop:
             with subprocess.Popen(self.cmd,
-                                  stdin=subprocess.PIPE,
+                                  stdin=subprocess.PIPE if run_std_in else None,
                                   stdout=subprocess.PIPE,
+                                  stderr=subprocess.PIPE if self.std_err else subprocess.DEVNULL,
                                   shell=isinstance(self.cmd, str)
                                   ) as proc:
                 threads = [

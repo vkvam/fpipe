@@ -34,21 +34,22 @@ class LocalGen(CallableGen[FileStream]):
                     break
 
     def executor(self, source: File):
+        path_name = self.pathname_resolver(
+            source
+        ) if self.pathname_resolver else source.meta(Path).value
+        path_meta = Path(path_name)
+
         if isinstance(source, LocalFile):
             with open(source.meta(Path).value, 'rb') as f:
-                yield CallableResponse(SeekableFileStream(f, parent=source))
+                yield CallableResponse(SeekableFileStream(f, parent=source, meta=path_meta))
         elif isinstance(source, FileStream):
-            path_name = self.pathname_resolver(
-                source
-            ) if self.pathname_resolver else source.meta(Path).value
-
             if self.pass_through:
                 with BytesLoop() as byte_loop:
                     proc_thread = threading.Thread(target=self.__process,
                                                    args=(source, path_name, byte_loop),
                                                    name=f'{self.__class__.__name__}', daemon=True)
-                    yield CallableResponse(FileStream(byte_loop, parent=source), proc_thread)
+                    yield CallableResponse(FileStream(byte_loop, parent=source, meta=path_meta), proc_thread)
             else:
                 self.__process(source, path_name)
                 with open(source.meta(Path).value, 'rb') as f:
-                    yield CallableResponse(SeekableFileStream(f, parent=source))
+                    yield CallableResponse(SeekableFileStream(f, parent=source, meta=path_meta))

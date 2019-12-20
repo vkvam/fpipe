@@ -15,11 +15,20 @@ class File:
                 self.meta_map.set(m)
 
     # def meta(self, item: Type[FileMeta]) -> FileMeta:
-    def meta(self, t: Type[T]) -> T:
+    def meta(self, t: Type[T], nth: Optional[int] = None) -> T:
         obj: Optional[File] = self
+        count = 0
         while obj is not None:
             try:
-                return obj.meta_map[t]
+                if nth is None or nth == 0:
+                    return obj.meta_map[t]
+                else:
+
+                    if count == nth:
+                        return obj.meta_map[t]
+                    if t in obj.meta_map:
+                        count += 1
+                    obj = obj.parent
             except KeyError:
                 obj = obj.parent
         raise KeyError(f"Not found {t}")

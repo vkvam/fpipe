@@ -23,24 +23,61 @@ pip3 install boto3
 ```
 
 ### Getting started
+##### Simple example
+*Calculates size and md5 of stream, while storing stream to disk and prints content. When file is read finished, md5 is ready and printed* 
 
-Example that reads a stream, calculates md5 and filesize, writes the file to disk and prints the original stream
 ```python
-from fpipe.gen import FileInfoGenerator, LocalFileGenerator
 from fpipe.file import ByteFile
+from fpipe.gen import LocalGen, MetaGen
 from fpipe.meta import Path, SizeCalculated, MD5Calculated
 from fpipe.workflow import WorkFlow
 
 workflow = WorkFlow(
-    LocalFileGenerator(pass_through=True),
-    FileInfoGenerator((SizeCalculated, MD5Calculated))
+    LocalGen(pass_through=True),
+    MetaGen(SizeCalculated, MD5Calculated)
 )
 
-for f in workflow.start(ByteFile(b'x' * 10, Path('x')), ByteFile(b'y' * 20, Path('y'))):
-    print("name:", f.meta(Path).value)
-    print("content:", f.file.read().decode('utf-8'))
-    print("md5:", f.meta(MD5Calculated).value)
-    print("size:", f.meta(SizeCalculated).value, end="\n\n")
+for stream in workflow.compose(ByteFile(b'x' * 10, Path('x.dat')), ByteFile(b'y' * 20, Path('y.dat'))):
+    print(f'\n{"-"*46}\n')
+    print("Path name:", stream.meta(Path).value)
+    print("Stream content: ", stream.file.read().decode('utf-8'))
+    with open(stream.meta(Path).value) as f:
+        print("File content:", f.read())
+    print("Stream md5:", stream.meta(MD5Calculated).value)
+    print("Stream size:", stream.meta(SizeCalculated).value)
+```
+*Stores original stream, calculates md5, encrypts, stores, calculates md5, decrypts and stores. Using flush_iter() we know all files have been completely read(), so MD5Calculated will be readable.*
+
+```python
+from fpipe.file import ByteFile
+from fpipe.gen import LocalGen, MetaGen, ProcessGen
+from fpipe.meta import Path, MD5Calculated
+from fpipe.workflow import WorkFlow
+
+workflow = WorkFlow(
+    MetaGen(MD5Calculated),
+    LocalGen(pass_through=True),
+
+    ProcessGen("gpg --batch --symmetric --passphrase 'secret'"),
+    MetaGen(MD5Calculated),
+    LocalGen(pass_through=True, pathname_resolver=lambda x: f'{x.meta(Path).value}.gpg'),
+
+    ProcessGen("gpg --batch --decrypt --passphrase 'secret'"),
+    MetaGen(MD5Calculated),
+    LocalGen(pass_through=True, pathname_resolver=lambda x: f'{x.meta(Path).value}.decrypted')
+)
+
+for f in workflow.compose(ByteFile(b'x' * 10, Path('x.orig')), ByteFile(b'y' * 20, Path('y.orig'))).flush_iter():
+    print(f'\n{"-"*46}\n')
+    print("Original path:", f.meta(Path, 2).value)
+    print("Original md5:", f.meta(MD5Calculated, 2).value, end='\n\n')
+
+    print("Encrypted path:", f.meta(Path, 1).value)
+    print("Encrypted md5:", f.meta(MD5Calculated, 1).value, end='\n\n')
+
+    print("Decrypted path:", f.meta(Path).value)
+    print("Decrypted md5:", f.meta(MD5Calculated).value)
+
 ```
 
 See unittests for more examples

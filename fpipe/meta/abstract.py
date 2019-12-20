@@ -25,6 +25,9 @@ class MetaMap:
         self.metas = {
         }
 
+    def __contains__(self, t: Type[T]):
+        return t in self.metas.keys()
+
     def set(self, t: T):
         self.metas[type(t)] = t
 
