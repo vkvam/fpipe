@@ -5,10 +5,31 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 # fPipe
 
-python framework for data manipulation and metadata extraction built around the python file-like api.
+fpipe is a simple framework for creating data manipulation/validation pipelines around the python file-like api.
 
-*Disclaimer: framework is currently in Alpha, production use discouraged*
+The need to cache files on disk between different file transformation quickly becomes an issue when speed and hardware concerns are a factor and unix pipes are not able to deal with the pipeline complexity.
 
+An example is unpacking a tar file from a remote source (e.g. s3/ftp/http) and storing it to another remote store.
+A unix pipe is not able to output the files within the tar in addition to metadata about the file, so we can not set or modify the target path.
+
+A solution using fPipe could look like this:
+```
+client = boto3.client('s3')
+resource = boto3.resource('s3')
+bucket = 'bucket'
+key = 'source.tar'
+
+WorkFlow(
+    S3Gen(client, resource),
+    TarGen(),
+    S3Gen(
+        client, resource, bucket=bucket,
+        pathname_resolver=lambda x: f'MyPrefix/{x.meta(Path).value}'
+    )
+).compose(
+    S3File(bucket, S3Key(key))
+).flush()
+```
 
 ### Installing
 

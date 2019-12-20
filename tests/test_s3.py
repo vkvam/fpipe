@@ -1,17 +1,20 @@
 import datetime
+import io
+import tarfile
 from copy import copy, deepcopy
 from unittest import TestCase
 
 from typing import IO, Iterable, List
 
 from fpipe.exceptions import SeekException, FileException, FileInfoException
-from fpipe.gen import MetaGen, S3Gen
+from fpipe.gen import MetaGen, S3Gen, TarGen
 from fpipe.file import S3File, S3PrefixFile
-from fpipe.meta import MD5Calculated, S3Key, S3Size, S3Mime, S3Modified, S3Version, SizeCalculated
+from fpipe.meta import MD5Calculated, S3Key, S3Size, S3Mime, S3Modified, S3Version, SizeCalculated, Path
 
 from moto import mock_s3, mock_iam, mock_config
 
-from test_utils.test_file import TestStream
+from fpipe.workflow import WorkFlow
+from test_utils.test_file import TestStream, ReversibleTestFile
 
 
 class TestS3(TestCase):
@@ -245,3 +248,55 @@ class TestS3(TestCase):
             t_stream.file.seek(0)
             self.assertEqual(content, t_stream.file.read())
         self.assertEqual(len(test_streams), 0)
+
+    def __create_tar(self, tar: tarfile.TarFile, path, size):
+        content = b'z' * size
+        f = io.BytesIO(content)
+        tar_info = tarfile.TarInfo()
+        tar_info.path = path
+        tar_info.size = size
+        tar.addfile(tar_info, f)
+        return content
+
+    @mock_s3
+    @mock_iam
+    @mock_config
+    def test_readme_example(self):
+
+        file = ('abc', 2 ** 14)
+        f = io.BytesIO()
+
+        with tarfile.open(fileobj=f, mode='w') as tar:
+            source_content = self.__create_tar(tar, *file)
+        f.seek(0)
+
+        tar_content = f.read()
+
+        bucket = 'bucket'
+        tar_key = 'source.tar'
+
+        client, resource, bucket = self.__init_s3(bucket)
+        client.put_object(
+            Bucket=bucket,
+            Body=tar_content,
+            Key=tar_key
+        )
+
+        # client = boto3.client('s3')
+        # resource = boto3.resource('s3')
+        bucket = 'bucket'
+        key = 'source.tar'
+
+        WorkFlow(
+            S3Gen(client, resource),
+            TarGen(),
+            S3Gen(
+                client, resource, bucket=bucket,
+                pathname_resolver=lambda x: f'MyPrefix/{x.meta(Path).value}'
+            )
+        ).compose(
+            S3File(bucket, S3Key(key))
+        ).flush()
+
+        o = client.get_object(Bucket=bucket, Key='MyPrefix/abc')
+        self.assertEqual(o['Body'].read(), source_content)

@@ -1,9 +1,8 @@
 import tarfile
-from typing import Iterable, Optional, Generator
+from typing import Optional, Generator
 
-from fpipe.file import File
+
 from fpipe.file.file import FileStream
-from fpipe.gen.abstract import FileGenerator
 from fpipe.gen.callable import CallableGen, CallableResponse
 from fpipe.meta.path import Path
 from fpipe.meta.size import Size

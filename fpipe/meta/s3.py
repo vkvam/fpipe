@@ -43,7 +43,7 @@ class S3Key(FileMetaValue[str]):
 
 
 class S3FileInfo:
-    def __init__(self, reader: S3FileReader):
+    def __init__(self, reader: S3FileReader ):
         self.reader = reader
         self.__s3_obj = None
         self.bucket = reader.bucket

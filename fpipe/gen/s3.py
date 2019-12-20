@@ -1,10 +1,9 @@
 from threading import Lock, Thread
-from typing import Iterable, Union, Optional, Generator
+from typing import Union, Optional, Generator, Callable
 
 from fpipe.exceptions import FileException
 from fpipe.file import FileStream, File
 from fpipe.file.s3 import S3File, S3PrefixFile, S3SeekableFileStream
-from fpipe.gen.abstract import FileGenerator
 from fpipe.gen.callable import CallableGen, CallableResponse
 from fpipe.meta import Path
 from fpipe.utils.mime import guess_mime
@@ -20,12 +19,14 @@ class S3Gen(CallableGen[FileStream]):
                  client,
                  resource,
                  bucket: Optional[str] = None,
-                 seekable=False):
+                 seekable=False,
+                 pathname_resolver: Callable[[File], str] = None):
         super().__init__()
         self.bucket = bucket
         self.client = client
         self.resource = resource
         self.seekable = seekable
+        self.pathname_resolver = pathname_resolver
 
     @staticmethod
     def write_to_s3(client, bucket, path, reader, read_lock, source: FileStream, mime: str, encoding: str):
@@ -62,7 +63,11 @@ class S3Gen(CallableGen[FileStream]):
             if not self.bucket:
                 raise FileException("FileStream source needs bucket defined")
             bucket = self.bucket
-            path: Path = source.meta(Path)
+
+            path = Path(self.pathname_resolver(
+                source
+            )) if self.pathname_resolver else source.meta(Path)
+
             mime, encoding = guess_mime(path.value)
             read_lock = Lock()
             with S3FileReader(client,
