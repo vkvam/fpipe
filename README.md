@@ -131,12 +131,10 @@ twine check dist/*
 
 ## Contributing
 
-Bug-reports and pull requests on github  
+See [CONTRIBUTING.md](https://github.com/vkvam/fpipe/blob/master/CONTRIBUTING.md)
 
 ## Versioning
-Any version change could break the public API (until 1.0.0 release)
  
-
 * [Pypi](https://pypi.org/project/fpipe/#history)
 * [Github](https://github.com/vkvam/fpipe/releases)
 
