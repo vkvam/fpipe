@@ -3,13 +3,9 @@ sudo: false
 matrix:
   include:
     - python: 3.7
-      env: TOXENV=py37
+      env: TOXENV=py37,lint,type DEPLOY=true
     - python: 3.8
       env: TOXENV=py38
-    - python: 3.7
-      env: TOXENV=lint
-    - python: 3.7
-      env: TOXENV=type
 deploy:
   provider: pypi
   user: vemund
@@ -18,7 +14,7 @@ deploy:
   distributions: sdist bdist_wheel
   on:
     tags: true
-    condition: $TOXENV = py37
+    condition: $DEPLOY==true
 install:
   - pip install tox-travis
   - pip install codecov
