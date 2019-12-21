@@ -19,7 +19,8 @@ class S3FileWriter(BinaryIO, ThreadPoolExecutor):
 
     def __init__(
         self,
-        s3_client: BaseClient,  # Most suitable type found in boto3/botocore
+        s3_client: BaseClient,
+        # Most suitable type found in boto3/botocore
         bucket: str,
         key: str,
         mime: str,
@@ -59,8 +60,8 @@ class S3FileWriter(BinaryIO, ThreadPoolExecutor):
         self.progress_queue = progress_queue if progress_queue else Queue()
 
         self.stop_workers_request = threading.Event()
-        self.work_queue = Queue(maxsize=worker_limit)
-        self.result_queue = Queue()
+        self.work_queue: Queue = Queue(maxsize=worker_limit)
+        self.result_queue: Queue = Queue()
         self.worker_limit = worker_limit
         self.max_part_upload_retries = max_part_upload_retries
         self.queue_timeout = queue_timeout
@@ -106,7 +107,7 @@ class S3FileWriter(BinaryIO, ThreadPoolExecutor):
         self,
         t: Optional[Type[BaseException]],
         value: Optional[BaseException],
-        traceback: Optional,
+        traceback=None,
     ) -> bool:
         try:
             self.close()

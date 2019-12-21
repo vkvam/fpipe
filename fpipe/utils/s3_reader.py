@@ -16,17 +16,17 @@ from fpipe.exceptions import SeekException, FileException
 
 class S3FileReader(BinaryIO):
     def __init__(
-        self,
-        s3_client,
-        s3_resource,
-        bucket,
-        key,
-        cache_size=5 * 2 ** 20,
-        cache_chunk_count_limit=4,
-        lock: Optional[threading.Lock] = None,
-        meta_lock: Optional[threading.Lock] = None,
-        version: Optional[str] = None,
-        seekable=True,
+            self,
+            s3_client,
+            s3_resource,
+            bucket,
+            key,
+            cache_size=5 * 2 ** 20,
+            cache_chunk_count_limit=4,
+            lock: Optional[threading.Lock] = None,
+            meta_lock: Optional[threading.Lock] = None,
+            version: Optional[str] = None,
+            seekable: bool = True,
     ):
         self.s3_client = s3_client
         self.s3_resource = s3_resource
@@ -49,7 +49,7 @@ class S3FileReader(BinaryIO):
         self.offset = 0
         self.read_lock = lock
         self.meta_lock = meta_lock
-        self.__seekable = seekable
+        self.__seekable: bool = seekable
         self.obj_body = None
         self.locked = self.meta_lock or self.read_lock
 
@@ -65,10 +65,10 @@ class S3FileReader(BinaryIO):
         return self
 
     def __exit__(
-        self,
-        t: Optional[Type[BaseException]],
-        value: Optional[BaseException],
-        traceback: Optional,
+            self,
+            t: Optional[Type[BaseException]],
+            value: Optional[BaseException],
+            traceback=None,
     ) -> bool:
         self.close()
         return t is None
@@ -85,7 +85,7 @@ class S3FileReader(BinaryIO):
                     return
         else:
             for obj in self.s3_resource.Bucket(self.bucket).objects.filter(
-                Prefix=self.key
+                    Prefix=self.key
             ):
                 if obj.key == self.key:
                     self._size = obj.size
@@ -153,10 +153,10 @@ class S3FileReader(BinaryIO):
 
             while chunk_start is not None:
                 while (
-                    chunk_start
-                    <= self.offset
-                    < chunk_start + self.cache_chunk_size
-                    and self.offset < end
+                        chunk_start
+                        <= self.offset
+                        < chunk_start + self.cache_chunk_size
+                        and self.offset < end
                 ):
                     chunk_offset = self.offset - chunk_start
                     self.offset = min(end, chunk_start + self.cache_chunk_size)
@@ -221,7 +221,6 @@ class S3FileReader(BinaryIO):
             self.obj_body.close()
 
         self.cache_chunks.clear()
-        self.cache_chunks = None
 
     def fileno(self) -> int:
         raise NotImplementedError

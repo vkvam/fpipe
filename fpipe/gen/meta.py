@@ -1,5 +1,5 @@
 import threading
-from typing import Iterable, Type
+from typing import Type, Iterator
 
 from fpipe.file.file import FileStream
 from fpipe.gen.abstract import FileGenerator
@@ -13,13 +13,13 @@ class Meta(FileGenerator):
         self.file_meta = file_meta
         self.bufsize = 2 ** 14
 
-    def __iter__(self) -> Iterable[FileStream]:
+    def __iter__(self) -> Iterator[FileStream]:
         for source in self.files:
             buf_size = self.bufsize
 
             with BytesLoop(self.bufsize) as byte_loop:
-                calculators = [f.get_calculator() for f in self.file_meta]
-                calc_calls = [f.write for f in calculators]
+                calculators = [f.get_calculator() for f in self.file_meta if f]
+                calc_calls = [f.write for f in calculators if f]
 
                 def __process():
 
@@ -44,6 +44,6 @@ class Meta(FileGenerator):
                 yield FileStream(
                     byte_loop,
                     parent=source,
-                    meta=[c.calculable for c in calculators],
+                    meta=[c.calculable for c in calculators if c],
                 )
                 proc_thread.join()

@@ -1,30 +1,27 @@
 from abc import abstractmethod
-from dataclasses import dataclass
 from threading import Thread
-from typing import Iterable, Callable, Optional, Generator
+from typing import Callable, Optional, Generator, Iterator, Generic, Union
 
-from fpipe.file.file import FileStream, File
-from fpipe.gen.abstract import T, FileGenerator
+from fpipe.gen.abstract import T, T2, FileGenerator
 
 
-@dataclass
-class CallableResponse:
-    def __init__(self, file: File, *thread: Thread):
-        self.file = file
+class CallableResponse(Generic[T, T2]):
+    def __init__(self, file: T, *thread: Thread):
+        self.file: T = file
         self.threads = thread
 
 
-class MethodGen(FileGenerator[T]):
+class MethodGen(FileGenerator[T, T2]):
     def __init__(self):
         super().__init__()
 
     @abstractmethod
     def executor(
-        self, source: File
+        self, source: T
     ) -> Optional[Generator[CallableResponse, None, None]]:
         pass
 
-    def __iter__(self) -> Iterable[FileStream]:
+    def __iter__(self) -> Iterator[Union[T, T2]]:
         for source in self.files:
             responses: Optional[
                 Generator[CallableResponse, None, None]
@@ -32,11 +29,14 @@ class MethodGen(FileGenerator[T]):
             if responses:
                 for resp in responses:
                     if resp:
+
                         if resp.threads:
                             for t in resp.threads:
                                 t.start()
+
                         if resp.file:
                             yield resp.file
+
                         if resp.threads:
                             for t in resp.threads:
                                 t.join()
@@ -46,17 +46,21 @@ class MethodGen(FileGenerator[T]):
                 yield source
 
 
-class Method(MethodGen[T]):
+class Method(MethodGen[T, T2]):
     def __init__(
         self,
         executor: Optional[
-            Callable[[File], Optional[Generator[CallableResponse, None, None]]]
+            Callable[[T], Optional[Generator[CallableResponse, None, None]]]
         ] = None,
     ):
         super().__init__()
-        self.callable = executor
+        self.callable: Optional[
+            Callable[[T], Optional[Generator[CallableResponse, None, None]]]
+        ] = executor
 
     def executor(
-        self, source: File
+        self, source: T
     ) -> Optional[Generator[CallableResponse, None, None]]:
-        return self.callable(source)
+        if self.callable:
+            return self.callable(source)
+        return None

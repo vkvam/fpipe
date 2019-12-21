@@ -1,26 +1,25 @@
 from threading import Lock, Thread
 from typing import Union, Optional, Generator, Callable
 from fpipe.exceptions import FileException, FileMetaException
-from fpipe.file import FileStream, File
+from fpipe.file import FileStream, File, SeekableFileStream
 from fpipe.file.s3 import S3File, S3PrefixFile, S3SeekableFileStream
 from fpipe.gen.callable import MethodGen, CallableResponse
 from fpipe.meta import Path, Version
 from fpipe.utils.mime import guess_mime
-from fpipe.utils.s3 import list_objects
 from fpipe.utils.s3_reader import S3FileReader
 from fpipe.utils.s3_writer import S3FileWriter
 
 
-class S3(MethodGen[FileStream]):
+class S3(MethodGen[FileStream, SeekableFileStream]):
     f_type = Union[S3File, S3PrefixFile, FileStream]
 
     def __init__(
-        self,
-        client,
-        resource,
-        bucket: Optional[str] = None,
-        seekable=False,
-        pathname_resolver: Callable[[File], str] = None,
+            self,
+            client,
+            resource,
+            bucket: Optional[str] = None,
+            seekable=False,
+            pathname_resolver: Callable[[File], str] = None,
     ):
         super().__init__()
         self.bucket = bucket
@@ -31,14 +30,14 @@ class S3(MethodGen[FileStream]):
 
     @staticmethod
     def write_to_s3(
-        client,
-        bucket,
-        path,
-        reader,
-        read_lock,
-        source: FileStream,
-        mime: str,
-        encoding: str,
+            client,
+            bucket,
+            path,
+            reader,
+            read_lock,
+            source: FileStream,
+            mime: str,
+            encoding: str,
     ):
         with S3FileWriter(client, bucket, path.value, mime) as writer:
             while True:
@@ -47,38 +46,42 @@ class S3(MethodGen[FileStream]):
                 writer.write(b)
                 if not b:
                     break
-        reader.version = writer.mpu_res.get("VersionId")
+        if writer.mpu_res:
+            reader.version = writer.mpu_res.get("VersionId")
+        else:
+            raise FileException
         # Release reader when we are done writing
         read_lock.release()
 
     def executor(
-        self, source: File
+            self, source: File
     ) -> Optional[Generator[CallableResponse, None, None]]:
         client, resource = self.client, self.resource
 
         if isinstance(source, S3File):
             bucket, key = source.bucket, source.meta(Path)
             try:
-                version = source.meta(Version)
+                version: Optional[Version] = source.meta(Version)
             except FileMetaException:  # Version not provided to source
                 version = None
 
             with S3FileReader(
-                client,
-                resource,
-                bucket,
-                key.value,
-                version=version.value if version else None,
-                seekable=self.seekable,
+                    client,
+                    resource,
+                    bucket,
+                    key.value,
+                    version=version.value if version else None,
+                    seekable=self.seekable,
             ) as reader:
                 yield CallableResponse(
                     S3SeekableFileStream(reader, parent=source)
                 )
         elif isinstance(source, S3PrefixFile):
             bucket, prefix = source.bucket, source.prefix
-            for o in list_objects(client, bucket, prefix):
+            for o in self.list_objects(client, bucket, prefix):
                 with S3FileReader(
-                    client, resource, bucket, o["Key"], seekable=self.seekable
+                        client, resource, bucket, o["Key"],
+                        seekable=self.seekable
                 ) as reader:
                     yield CallableResponse(
                         S3SeekableFileStream(reader, parent=source)
@@ -97,13 +100,13 @@ class S3(MethodGen[FileStream]):
             mime, encoding = guess_mime(path.value)
             read_lock = Lock()
             with S3FileReader(
-                client,
-                resource,
-                bucket,
-                path.value,
-                lock=read_lock,
-                meta_lock=Lock(),
-                seekable=self.seekable,
+                    client,
+                    resource,
+                    bucket,
+                    path.value,
+                    lock=read_lock,
+                    meta_lock=Lock(),
+                    seekable=self.seekable,
             ) as reader:
 
                 thread_args = (
@@ -129,3 +132,30 @@ class S3(MethodGen[FileStream]):
             raise FileException(
                 f"FileStream source {source.__class__.__name__} not valid"
             )
+
+    @staticmethod
+    def list_objects(
+            client, bucket: str, prefix: str = None, use_generator: bool = True
+    ):
+        """
+        Get all objects as a generator.
+        :param client: boto3 s3 client
+        :param bucket: Bucket name
+        :param prefix: Object prefix
+        :param use_generator: Use generator
+        :return: generator or list
+        """
+
+        args = {"Bucket": bucket}
+        if prefix is not None:
+            args["Prefix"] = prefix
+
+        paginator = client.get_paginator("list_objects_v2")
+        page_iterator = paginator.paginate(**args)
+
+        def get_generator():
+            for page in page_iterator:
+                for item in page["Contents"]:
+                    yield item
+
+        return get_generator() if use_generator else list(get_generator())

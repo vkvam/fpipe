@@ -4,15 +4,15 @@ from typing import Optional, Type, Iterator, AnyStr, Iterable, List, BinaryIO
 
 
 class BytesLoop(BinaryIO):
-    def __init__(self, buf_size=2 ** 14, lock_wait=0.00001):
+    def __init__(self, buf_size: int = 2 ** 14, lock_wait: float = 0.00001):
         self.buffer = bytearray()
         self.done = False
         self.lock = threading.Lock()
-        self.buf_size = buf_size
-        self.lock_wait = lock_wait
+        self.buf_size: int = buf_size
+        self.lock_wait: float = lock_wait
         # self.stats = Stats(self.__class__.__name__)
 
-    def __r(self, n=None):
+    def __r(self, n=None) -> bytes:
         self.lock.acquire()
         chunk = self.buffer[:n]
         while not chunk and not self.done:
@@ -111,10 +111,10 @@ class BytesLoop(BinaryIO):
         raise NotImplementedError()
 
     def __exit__(
-        self,
-        t: Optional[Type[BaseException]],
-        value: Optional[BaseException],
-        traceback: Optional,
+            self,
+            t: Optional[Type[BaseException]],
+            value: Optional[BaseException],
+            traceback=None,
     ) -> bool:
         self.close()
         return t is None

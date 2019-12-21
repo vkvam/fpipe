@@ -33,7 +33,10 @@ class File:
                         count += 1
                     obj = obj.parent
             except KeyError:
-                obj = obj.parent
+                if obj:
+                    obj = obj.parent
+                else:
+                    raise FileMetaException(t)
         raise FileMetaException(t)
 
 

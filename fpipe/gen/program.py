@@ -9,7 +9,7 @@ from fpipe.gen.callable import MethodGen, CallableResponse
 from fpipe.utils.bytesloop import BytesLoop
 
 
-class Program(MethodGen[FileStream]):
+class Program(MethodGen[FileStream, FileStream]):
     def __init__(
         self,
         command: Union[List[str], str],

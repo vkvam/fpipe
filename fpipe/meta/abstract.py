@@ -49,7 +49,7 @@ class FileMetaFuture(FileMeta[T]):
     def __init__(
         self,
         value: Optional[T] = None,
-        future: Optional[Callable[[None], T]] = None,
+        future: Optional[Callable[[], T]] = None,
     ):
         self.__v = value
         self.__future = future

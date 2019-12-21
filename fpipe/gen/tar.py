@@ -1,7 +1,6 @@
 import datetime
 import tarfile
-from typing import Optional, Generator
-
+from typing import cast, BinaryIO
 
 from fpipe.file.file import FileStream
 from fpipe.gen.callable import MethodGen, CallableResponse
@@ -10,10 +9,8 @@ from fpipe.meta.path import Path
 from fpipe.meta.size import Size
 
 
-class Tar(MethodGen[FileStream]):
-    def executor(
-        self, source: FileStream
-    ) -> Optional[Generator[CallableResponse, None, None]]:
+class Tar(MethodGen[FileStream, FileStream]):
+    def executor(self, source: FileStream):
         try:
             with tarfile.open(
                 fileobj=source.file, mode="r|*"
@@ -24,7 +21,7 @@ class Tar(MethodGen[FileStream]):
                     if tar_stream:
                         yield CallableResponse(
                             FileStream(
-                                tar_stream,
+                                cast(BinaryIO, tar_stream),
                                 meta=(
                                     Size(tar_info.size),
                                     Modified(

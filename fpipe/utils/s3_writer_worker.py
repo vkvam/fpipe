@@ -33,7 +33,7 @@ def worker(
 ):
     retries = 0
 
-    while not stop_workers_request.isSet() or work_queue.qsize() > 0:
+    while not stop_workers_request.is_set() or work_queue.qsize() > 0:
         try:
             data, part_index = work_queue.get(timeout=0.05)
         except Empty:

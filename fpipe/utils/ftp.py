@@ -1,24 +1,28 @@
 import ftplib
 import socket
 import threading
-from typing import BinaryIO
+from typing import BinaryIO, Optional
 
 from fpipe.utils.bytesloop import BytesLoop
 
 
 class FTPClient(object):
     def __init__(
-        self, host, username, password, blocksize=None, timeout=None, port=21
+            self,
+            host: str,
+            username: str,
+            password: str,
+            blocksize: Optional[int] = None,
+            timeout: Optional[int] = None,
+            port: int = 21
     ):
-        self.host = host
-        self.port = port
-        self.user = username
-        self.passwd = password
-
-        self.timeout = timeout or 60
-
-        self.blocksize = blocksize
-        self.md5 = None
+        self.host: str = host
+        self.port: int = port
+        self.user: str = username
+        self.passwd: str = password
+        self.timeout: int = timeout or 60
+        self.blocksize: Optional[int] = blocksize
+        self.md5: Optional[str] = None
 
     def _get_session(self):
         ftp = ftplib.FTP()
@@ -36,10 +40,12 @@ class FTPClient(object):
     def write_to_file(self, path: str, bytes_io: BinaryIO):
         ftp = self._get_session()
         exception = None
-
+        kwargs = dict(cmd="RETR " + path,
+                      callback=bytes_io.write,
+                      blocksize=self.blocksize)
         try:
             ftp.retrbinary(
-                "RETR " + path, bytes_io.write, blocksize=self.blocksize
+                **{k: v for k, v in kwargs.items() if v is not None}
             )
             # For some reason retrbinary does not send EOF
             bytes_io.write(b"")

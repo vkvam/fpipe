@@ -2,13 +2,12 @@ from typing import Tuple
 
 
 class Buffer(object):
-    def __init__(self, chunk_size, str_encoding="utf-8"):
-        self.buffer = bytearray()
-        self.part_number = 1
-        self.chunk_size = chunk_size
+    def __init__(self, chunk_size: int, str_encoding: str = "utf-8"):
+        self.buffer: bytearray = bytearray()
+        self.part_number: int = 1
+        self.chunk_size: int = chunk_size
+        self.count: int = 0
         self.str_encoding = str_encoding
-
-        self.count = 0
 
     def add(self, data):
         data_count = len(data)

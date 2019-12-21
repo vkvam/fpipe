@@ -21,7 +21,7 @@ def _process(
                 break
 
 
-class Local(MethodGen[FileStream]):
+class Local(MethodGen[FileStream, FileStream]):
     def __init__(
         self,
         pass_through=False,
