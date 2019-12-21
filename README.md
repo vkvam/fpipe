@@ -37,7 +37,6 @@ WorkFlow(
 ).flush()
 ```
 
-*The framework is functional, but in the early stages, so any feedback on alternatives, usefulness, api-design, etc. would be appreciated*
 
 ### Installing
 
@@ -51,10 +50,10 @@ pip3 install fpipe
 pip3 install boto3
 ```
 
-### Getting started
-##### Simple example
-*Calculates size and md5 of stream, while storing stream to disk and prints content. When file is read finished, md5 is ready and printed* 
 
+### Simple example
+
+*Calculates size and md5 of stream, while writing the stream to disk.*
 ```python
 from fpipe.file import ByteFile
 from fpipe.gen import Local, Meta
@@ -66,7 +65,12 @@ workflow = WorkFlow(
     Meta(Size, MD5)
 )
 
-for stream in workflow.compose(ByteFile(b'x' * 10, Path('x.dat')), ByteFile(b'y' * 20, Path('y.dat'))):
+sources = [
+    ByteFile(b'x' * 10, Path('x.dat')),
+    ByteFile(b'y' * 20, Path('y.dat'))
+]
+
+for stream in workflow.compose(sources):
     print(f'\n{"-"*46}\n')
     print("Path name:", stream.meta(Path).value)
     print("Stream content: ", stream.file.read().decode('utf-8'))
@@ -76,8 +80,9 @@ for stream in workflow.compose(ByteFile(b'x' * 10, Path('x.dat')), ByteFile(b'y'
     print("Stream size:", stream.meta(Size).value)
 ```
 
-##### Subprocess script example
-*Stores original stream, calculates md5, encrypts using cli, stores, calculates md5, decrypts using cli and stores. Using flush_iter() we know all files have been completely read(), so MD5 will be readable.*
+### Subprocess script example
+
+*Stores original stream, calculates md5, encrypts using cli, stores encrypted file, calculates md5, decrypts and stores decrypted file*
 
 ```python
 from fpipe.file import ByteFile
@@ -98,7 +103,12 @@ workflow = WorkFlow(
     Local(pass_through=True, pathname_resolver=lambda x: f'{x.meta(Path).value}.decrypted')
 )
 
-for f in workflow.compose(ByteFile(b'x' * 10, Path('x.orig')), ByteFile(b'y' * 20, Path('y.orig'))).flush_iter():
+sources = (
+    ByteFile(b'x' * 10, Path('x.orig')),
+    ByteFile(b'y' * 20, Path('y.orig'))
+)
+
+for f in workflow.compose(sources).flush_iter():
     print(f'\n{"-"*46}\n')
     print("Original path:", f.meta(Path, 2).value)
     print("Original md5:", f.meta(MD5, 2).value, end='\n\n')
@@ -117,7 +127,8 @@ See unittests for more examples
 
 To run tests install tox and twine with pip, go to project root and run tox
 ```bash
-# python3 -m venv .venv
+# Create virtualenv
+python3 -m venv .venv
 # Activate virtualenv
 source .venv/bin/activate
 # Run tests
@@ -136,6 +147,7 @@ twine check dist/*
 * [Tox](https://tox.readthedocs.io/)
 
 ## Contributing
+The framework is functional, but in the early stages, so any feedback on alternatives, usefulness, api-design, etc. would be appreciated
 
 See [CONTRIBUTING.md](https://github.com/vkvam/fpipe/blob/master/CONTRIBUTING.md)
 
