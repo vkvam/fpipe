@@ -3,6 +3,9 @@ from setuptools import setup, find_packages
 with open('README.md') as readme:
     long_description = readme.read()
 
+with open('requirements.txt') as f:
+    requirements = f.read().splitlines()
+
 version = '0.0.14'
 
 setup(
@@ -25,5 +28,5 @@ setup(
     author_email='vemund.kvam@gmail.com',
     license='MIT',
     packages=find_packages(exclude=['*.tests']),
-    install_requires=[],
+    install_requires=requirements,
 )
