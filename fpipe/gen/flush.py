@@ -12,4 +12,3 @@ class Flush(CallableGen):
         size = 2 ** 14
         while read(size):
             pass
-

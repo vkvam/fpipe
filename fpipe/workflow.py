@@ -12,9 +12,11 @@ class WorkFlow:
 
     def compose(self, *source: Union[File, Iterable[File]]) -> FileGenerator:
         """
-        Sets up the workflow, but will not process anything before returned files are read from.
+        Sets up the workflow, but will not process anything before returned
+        files are read from.
 
-        :param source: A collection of File or generators of File to run the workflow with
+        :param source: A collection of File or generators of File to run the
+        workflow with
         :return: the output FileGenerator of the workflow
         """
 

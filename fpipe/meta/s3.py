@@ -1,5 +1,4 @@
 from typing import Iterable, Type
-
 from fpipe.exceptions import FileMetaException
 from fpipe.meta import Version
 from fpipe.meta.modified import Modified
@@ -22,9 +21,9 @@ class S3MetadataProducer:
             yield Version(self.reader.version)
 
         yield Path(self.path)
-        yield Size(future=self.__future('ContentLength', Size))
-        yield Modified(future=self.__future('LastModified', Modified))
-        yield Mime(future=self.__future('ContentType', Mime))
+        yield Size(future=self.__future("ContentLength", Size))
+        yield Modified(future=self.__future("LastModified", Modified))
+        yield Mime(future=self.__future("ContentType", Mime))
 
     def __get_metadata(self, lock, key: str, value_class):
         if lock.locked():
@@ -32,7 +31,11 @@ class S3MetadataProducer:
         self.__s3_obj = self.__s3_obj or self.reader.s3_client.get_object(
             Bucket=self.reader.bucket,
             Key=self.reader.key,
-            **({'VersionId': self.reader.version} if self.reader.version else {})
+            **(
+                {"VersionId": self.reader.version}
+                if self.reader.version
+                else {}
+            ),
         )
         if self.__s3_obj:
             return self.__s3_obj[key]

@@ -5,9 +5,11 @@ from fpipe.meta.abstract import FileMeta, MetaMap, T
 
 
 class File:
-    def __init__(self,
-                 parent: Optional['File'] = None,
-                 meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None):
+    def __init__(
+        self,
+        parent: Optional["File"] = None,
+        meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None,
+    ):
         self.parent = parent
         self.meta_map = MetaMap()
         meta = [meta] if isinstance(meta, FileMeta) else meta
@@ -40,10 +42,12 @@ class FileStream(File):
     A non seekable file-like
     """
 
-    def __init__(self,
-                 file: IO[bytes],
-                 parent: Optional['File'] = None,
-                 meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None):
+    def __init__(
+        self,
+        file: IO[bytes],
+        parent: Optional["File"] = None,
+        meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None,
+    ):
         super().__init__(parent=parent, meta=meta)
         self.__f = file
 
@@ -56,4 +60,5 @@ class SeekableFileStream(FileStream):
     """
     A seekable file-like
     """
+
     pass

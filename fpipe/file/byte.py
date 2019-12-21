@@ -6,5 +6,9 @@ from fpipe.meta.abstract import FileMeta
 
 
 class ByteFile(FileStream):
-    def __init__(self, b: bytes, meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None):
+    def __init__(
+        self,
+        b: bytes,
+        meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None,
+    ):
         super().__init__(io.BytesIO(b), meta=meta)

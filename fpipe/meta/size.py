@@ -2,7 +2,7 @@ from fpipe.meta.abstract import FileMetaFuture, FileMetaCalculator, T
 
 
 class SizeCalculator(FileMetaCalculator):
-    def __init__(self, calculable: 'Size'):
+    def __init__(self, calculable: "Size"):
         super().__init__(calculable)
         self.v = 0
 
@@ -13,7 +13,6 @@ class SizeCalculator(FileMetaCalculator):
 
 
 class Size(FileMetaFuture[int]):
-
     @staticmethod
     def get_calculator() -> FileMetaCalculator[T]:
         return SizeCalculator(Size())

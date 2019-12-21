@@ -11,5 +11,5 @@ class S3WriteException(Exception):
 
 
 class FileMetaException(Exception):
-    def __init__(self, obj: 'FileMetaCalculator'):
+    def __init__(self, obj: object):
         super().__init__(f"Could not return {obj.__class__.__name__}")

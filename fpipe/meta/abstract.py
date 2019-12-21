@@ -3,7 +3,7 @@ from typing import TypeVar, Type, cast, Generic, Optional, Callable
 
 from fpipe.exceptions import FileMetaException
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class FileMeta(Generic[T]):
@@ -24,8 +24,7 @@ class FileMetaValue(FileMeta[T]):
 
 class MetaMap:
     def __init__(self):
-        self.metas = {
-        }
+        self.metas = {}
 
     def __contains__(self, t: Type[T]):
         return t in self.metas.keys()
@@ -38,7 +37,7 @@ class MetaMap:
 
 
 class FileMetaCalculator(Generic[T]):
-    def __init__(self, calculable: 'FileMetaFuture[T]'):
+    def __init__(self, calculable: "FileMetaFuture[T]"):
         self.calculable = calculable
 
     @abstractmethod
@@ -47,10 +46,11 @@ class FileMetaCalculator(Generic[T]):
 
 
 class FileMetaFuture(FileMeta[T]):
-
-    def __init__(self,
-                 value: Optional[T] = None,
-                 future: Optional[Callable[[None], T]] = None):
+    def __init__(
+        self,
+        value: Optional[T] = None,
+        future: Optional[Callable[[None], T]] = None,
+    ):
         self.__v = value
         self.__future = future
 
@@ -68,4 +68,3 @@ class FileMetaFuture(FileMeta[T]):
         elif self.__future:
             return self.__future()
         raise FileMetaException(self)
-

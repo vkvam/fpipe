@@ -7,12 +7,15 @@ from fpipe.utils.ftp import FTPClient
 
 
 class FTP(CallableGen[FileStream]):
-
     def executor(self, source: FTPFile):
-        ftp_client = FTPClient(host=source.host,
-                               username=source.username,
-                               password=source.password,
-                               blocksize=source.block_size,
-                               port=source.port)
-        thread, bytes_io = ftp_client.write_to_file_threaded(source.meta(Path).value)
+        ftp_client = FTPClient(
+            host=source.host,
+            username=source.username,
+            password=source.password,
+            blocksize=source.block_size,
+            port=source.port,
+        )
+        thread, bytes_io = ftp_client.write_to_file_threaded(
+            source.meta(Path).value
+        )
         yield CallableResponse(FileStream(bytes_io, parent=source), thread)

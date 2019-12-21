@@ -4,8 +4,7 @@ from fpipe.meta.abstract import FileMetaFuture, FileMetaCalculator
 
 
 class MD5Calculator(FileMetaCalculator[str]):
-
-    def __init__(self, calculable: 'MD5'):
+    def __init__(self, calculable: "MD5"):
         super().__init__(calculable)
         self.__sig = hashlib.md5()
 

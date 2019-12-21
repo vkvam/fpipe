@@ -1,11 +1,13 @@
-import queue
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from typing import IO, AnyStr, List, Optional, Iterable, Iterator, Type
 
 from botocore.client import BaseClient
-from botocore.exceptions import ClientError, ParamValidationError, BotoCoreError
+from botocore.exceptions import (
+    ClientError,
+    BotoCoreError,
+)
 
 from fpipe.exceptions import S3WriteException
 from fpipe.utils.part_buffer import Buffer
@@ -15,17 +17,19 @@ from fpipe.utils.s3_writer_worker import S3FileProgress, worker
 class S3FileWriter(IO[bytes], ThreadPoolExecutor):
     MIN_BLOCK_SIZE = 5 * 2 ** 20
 
-    def __init__(self,
-                 s3_client: BaseClient,  # Most suitable type found in boto3/botocore
-                 bucket: str,
-                 key: str,
-                 mime: str,
-                 block_size: int = MIN_BLOCK_SIZE,
-                 full_control: str = None,
-                 worker_limit: int = 4,
-                 progress_queue: Optional[Queue] = None,
-                 max_part_upload_retries: int = 10,
-                 queue_timeout=300):
+    def __init__(
+        self,
+        s3_client: BaseClient,  # Most suitable type found in boto3/botocore
+        bucket: str,
+        key: str,
+        mime: str,
+        block_size: int = MIN_BLOCK_SIZE,
+        full_control: str = None,
+        worker_limit: int = 4,
+        progress_queue: Optional[Queue] = None,
+        max_part_upload_retries: int = 10,
+        queue_timeout=300,
+    ):
         """
 
         :param s3_client: S3 client created with boto3.client('s3')
@@ -33,7 +37,8 @@ class S3FileWriter(IO[bytes], ThreadPoolExecutor):
         :param key: S3 key name
         :param mime: mime type of object
         :param block_size: block size lower limit of 5MB
-        :param full_control: String to set full object control to other than the uploading user/account
+        :param full_control: String to set full object control to addition
+        aws users/accounts
         :param worker_limit: limit for parallel uploads
         :param progress_queue: a queue providing upload status feedback
         :param max_part_upload_retries: max retries if a part fails uploading
@@ -42,7 +47,9 @@ class S3FileWriter(IO[bytes], ThreadPoolExecutor):
         super().__init__()
         if mime is None:
             raise Exception("Mime type must be set")
-        block_size = max(self.MIN_BLOCK_SIZE, block_size)  # Block size must be over 5MB (aws rule)
+        block_size = max(
+            self.MIN_BLOCK_SIZE, block_size
+        )  # Block size must be over 5MB (aws rule)
         self.client = s3_client
         self.bucket = bucket
         self.key = key
@@ -59,29 +66,33 @@ class S3FileWriter(IO[bytes], ThreadPoolExecutor):
         self.queue_timeout = queue_timeout
         self.mpu_res = None
 
-    def __enter__(self) -> 'S3FileWriter':
+    def __enter__(self) -> "S3FileWriter":
         self.buffer.clear()
 
         arguments = {
-            'Bucket': self.bucket, 'Key': self.key, 'ContentType': self.mime
+            "Bucket": self.bucket,
+            "Key": self.key,
+            "ContentType": self.mime,
         }
         if self.full_control:
-            arguments['GrantFullControl'] = self.full_control
+            arguments["GrantFullControl"] = self.full_control
 
         self.mpu = self.client.create_multipart_upload(**arguments)
         self.progress_queue.put("Created multipart upload")
 
         for i in range(self.worker_limit):
-            self.submit(worker,
-                        self.client,
-                        self.stop_workers_request,
-                        self.work_queue,
-                        self.result_queue,
-                        self.progress_queue,
-                        self.bucket,
-                        self.key,
-                        self.mpu['UploadId'],
-                        self.max_part_upload_retries)
+            self.submit(
+                worker,
+                self.client,
+                self.stop_workers_request,
+                self.work_queue,
+                self.result_queue,
+                self.progress_queue,
+                self.bucket,
+                self.key,
+                self.mpu["UploadId"],
+                self.max_part_upload_retries,
+            )
 
         return self
 
@@ -91,8 +102,12 @@ class S3FileWriter(IO[bytes], ThreadPoolExecutor):
         if self.buffer.full():
             self.work_queue.put(self.buffer.get(), timeout=self.queue_timeout)
 
-    def __exit__(self, t: Optional[Type[BaseException]], value: Optional[BaseException],
-                 traceback: Optional) -> bool:
+    def __exit__(
+        self,
+        t: Optional[Type[BaseException]],
+        value: Optional[BaseException],
+        traceback: Optional,
+    ) -> bool:
         try:
             self.close()
             return t is None
@@ -106,15 +121,15 @@ class S3FileWriter(IO[bytes], ThreadPoolExecutor):
             self.shutdown()
         finally:
             self.client.abort_multipart_upload(
-                Bucket=self.bucket,
-                Key=self.key,
-                UploadId=self.mpu['UploadId']
+                Bucket=self.bucket, Key=self.key, UploadId=self.mpu["UploadId"]
             )
 
     def close(self):
         try:
             if not self.buffer.empty():
-                self.work_queue.put(self.buffer.get(), timeout=self.queue_timeout)
+                self.work_queue.put(
+                    self.buffer.get(), timeout=self.queue_timeout
+                )
 
             self.stop_workers_request.set()
             self.work_queue.join()
@@ -123,13 +138,17 @@ class S3FileWriter(IO[bytes], ThreadPoolExecutor):
             while not self.result_queue.empty():
                 results.append(self.result_queue.get_nowait())
 
-            results.sort(key=lambda x: x['PartNumber'])
-            self.mpu_res = self.client.complete_multipart_upload(UploadId=self.mpu['UploadId'],
-                                                                 MultipartUpload={'Parts': results},
-                                                                 Bucket=self.bucket,
-                                                                 Key=self.key)
+            results.sort(key=lambda x: x["PartNumber"])
+            self.mpu_res = self.client.complete_multipart_upload(
+                UploadId=self.mpu["UploadId"],
+                MultipartUpload={"Parts": results},
+                Bucket=self.bucket,
+                Key=self.key,
+            )
 
-            self.progress_queue.put(S3FileProgress("Multipart", "Multipart upload complete"))
+            self.progress_queue.put(
+                S3FileProgress("Multipart", "Multipart upload complete")
+            )
             self.shutdown()
         except BotoCoreError:
             raise

@@ -32,9 +32,18 @@ class Meta(FileGenerator):
                             break
 
                 # TODO: Pass all threads to the end, and start/join them
-                # all in another thread that tries to join all threads in sequence.
-                # Need to fix so that file read/write can be aborted if any of the threads fail.
-                proc_thread = threading.Thread(target=__process, name=f'{self.__class__.__name__}', daemon=True)
+                # all in another thread that tries to join all threads in
+                # sequence. Need to fix so that file read/write can be aborted
+                # if any of the threads fail.
+                proc_thread = threading.Thread(
+                    target=__process,
+                    name=f"{self.__class__.__name__}",
+                    daemon=True,
+                )
                 proc_thread.start()
-                yield FileStream(byte_loop, parent=source, meta=[c.calculable for c in calculators])
+                yield FileStream(
+                    byte_loop,
+                    parent=source,
+                    meta=[c.calculable for c in calculators],
+                )
                 proc_thread.join()

@@ -15,18 +15,27 @@ class CallableResponse:
 
 
 class CallableGen(FileGenerator[T]):
-    def __init__(self, executor: Optional[Callable[[File], Optional[Generator[CallableResponse, None, None]]]] = None):
+    def __init__(
+        self,
+        executor: Optional[
+            Callable[[File], Optional[Generator[CallableResponse, None, None]]]
+        ] = None,
+    ):
         super().__init__()
         if executor:
             self.executor = executor
 
     @abstractmethod
-    def executor(self, source: File) -> Optional[Generator[CallableResponse, None, None]]:
+    def executor(
+        self, source: File
+    ) -> Optional[Generator[CallableResponse, None, None]]:
         pass
 
     def __iter__(self) -> Iterable[FileStream]:
         for source in self.files:
-            responses: Optional[Generator[CallableResponse, None, None]] = self.executor(source)
+            responses: Optional[
+                Generator[CallableResponse, None, None]
+            ] = self.executor(source)
             if responses:
                 for resp in responses:
                     if resp:

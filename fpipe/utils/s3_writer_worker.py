@@ -20,15 +20,17 @@ class S3FileProgress(object):
         return "{}: {}".format(self.name, self.data)
 
 
-def worker(client: BaseClient,
-           stop_workers_request: Event,
-           work_queue: Queue,
-           result_queue: Queue,
-           progress_queue: Queue,
-           bucket: str,
-           key: str,
-           upload_id: str,
-           max_retries: int):
+def worker(
+    client: BaseClient,
+    stop_workers_request: Event,
+    work_queue: Queue,
+    result_queue: Queue,
+    progress_queue: Queue,
+    bucket: str,
+    key: str,
+    upload_id: str,
+    max_retries: int,
+):
     retries = 0
 
     while not stop_workers_request.isSet() or work_queue.qsize() > 0:
@@ -44,19 +46,19 @@ def worker(client: BaseClient,
                 Body=data,
                 Bucket=bucket,
                 Key=key,
-                UploadId=upload_id
+                UploadId=upload_id,
             )
 
             hash_md5 = hashlib.md5()
             hash_md5.update(data)
             data_etag = hash_md5.hexdigest()
 
-            s3_etag = part['ETag']
+            s3_etag = part["ETag"]
 
             if data_etag != s3_etag[1:-1]:
                 progress = S3FileProgress(
                     "Part nr {} upload".format(part_index),
-                    "Incorrect checksum {}!={}".format(data_etag, s3_etag)
+                    "Incorrect checksum {}!={}".format(data_etag, s3_etag),
                 )
                 progress_queue.put(progress)
                 raise CorruptedMultipartError(progress)
@@ -64,14 +66,11 @@ def worker(client: BaseClient,
                 progress_queue.put(
                     S3FileProgress(
                         "Part nr {} upload".format(part_index),
-                        'ok [{}]'.format(len(data))
+                        "ok [{}]".format(len(data)),
                     )
                 )
             work_queue.task_done()
-            result_queue.put({
-                'PartNumber': part_index,
-                'ETag': s3_etag
-            })
+            result_queue.put({"PartNumber": part_index, "ETag": s3_etag})
 
             gc.collect()  # boto3 has memory leaks for some reason
         except (CorruptedMultipartError, exceptions.ClientError):

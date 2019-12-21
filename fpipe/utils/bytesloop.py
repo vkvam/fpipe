@@ -20,7 +20,7 @@ class BytesLoop(IO[bytes]):
             sleep(self.lock_wait)  # Allow writes
             self.lock.acquire()
             chunk = self.buffer[:n]
-        del self.buffer[:len(chunk)]
+        del self.buffer[: len(chunk)]
         self.lock.release()
 
         return chunk
@@ -110,7 +110,11 @@ class BytesLoop(IO[bytes]):
     def __iter__(self) -> Iterator[AnyStr]:
         raise NotImplementedError()
 
-    def __exit__(self, t: Optional[Type[BaseException]], value: Optional[BaseException],
-                 traceback: Optional) -> bool:
+    def __exit__(
+        self,
+        t: Optional[Type[BaseException]],
+        value: Optional[BaseException],
+        traceback: Optional,
+    ) -> bool:
         self.close()
         return t is None

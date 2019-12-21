@@ -1,4 +1,3 @@
-import re
 import shlex
 import subprocess
 import threading
@@ -11,8 +10,13 @@ from fpipe.utils.bytesloop import BytesLoop
 
 
 class Program(CallableGen[FileStream]):
-
-    def __init__(self, command: Union[List[str], str], buf_size=2 ** 14, std_err=False, posix=True):
+    def __init__(
+        self,
+        command: Union[List[str], str],
+        buf_size=2 ** 14,
+        std_err=False,
+        posix=True,
+    ):
         """
         :param command: if a string is passed, shell
         :param buf_size: buffer_size for the subprocess to use
@@ -21,11 +25,17 @@ class Program(CallableGen[FileStream]):
         """
         super().__init__()
 
-        self.command = shlex.split(command, posix=posix) if isinstance(command, str) else command
+        self.command = (
+            shlex.split(command, posix=posix)
+            if isinstance(command, str)
+            else command
+        )
         self.buf_size = buf_size
         self.std_err = std_err
         if std_err:
-            raise NotImplementedError("Handling of stderr currently not supported")
+            raise NotImplementedError(
+                "Handling of stderr currently not supported"
+            )
 
     @staticmethod
     def __std_in_to_cmd(source: FileStream, proc, buf_size):
@@ -49,27 +59,36 @@ class Program(CallableGen[FileStream]):
                 proc.stdout.close()  # EOF
                 break
 
-    def executor(self, source: File) -> Optional[Generator[CallableResponse, None, None]]:
+    def executor(
+        self, source: File
+    ) -> Optional[Generator[CallableResponse, None, None]]:
         buf_size = self.buf_size
         run_std_in = isinstance(source, FileStream)
 
         with BytesLoop(self.buf_size) as byte_loop:
-            with subprocess.Popen(self.command,
-                                  stdin=subprocess.PIPE if run_std_in else None,
-                                  stdout=subprocess.PIPE,
-                                  stderr=subprocess.PIPE if self.std_err else subprocess.DEVNULL,
-                                  ) as proc:
+            with subprocess.Popen(
+                self.command,
+                stdin=subprocess.PIPE if run_std_in else None,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE if self.std_err else subprocess.DEVNULL,
+            ) as proc:
                 threads = [
                     threading.Thread(
                         target=self.__stdout_to_file,
                         args=(byte_loop, proc, buf_size),
-                        name=f'{self.__class__.__name__} STD-OUT',
-                        daemon=True
+                        name=f"{self.__class__.__name__} STD-OUT",
+                        daemon=True,
                     )
                 ]
                 if run_std_in:
-                    threads.append(threading.Thread(target=self.__std_in_to_cmd,
-                                                    args=(source, proc, buf_size),
-                                                    name=f'{self.__class__.__name__} STD-OUT',
-                                                    daemon=True))
-                yield CallableResponse(FileStream(byte_loop, parent=source), *threads)
+                    threads.append(
+                        threading.Thread(
+                            target=self.__std_in_to_cmd,
+                            args=(source, proc, buf_size),
+                            name=f"{self.__class__.__name__} STD-OUT",
+                            daemon=True,
+                        )
+                    )
+                yield CallableResponse(
+                    FileStream(byte_loop, parent=source), *threads
+                )

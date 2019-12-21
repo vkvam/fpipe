@@ -2,7 +2,7 @@ from typing import Tuple
 
 
 class Buffer(object):
-    def __init__(self, chunk_size, str_encoding='utf-8'):
+    def __init__(self, chunk_size, str_encoding="utf-8"):
         self.buffer = bytearray()
         self.part_number = 1
         self.chunk_size = chunk_size
@@ -28,9 +28,9 @@ class Buffer(object):
 
     def get(self) -> Tuple[bytearray, int]:
         try:
-            return self.buffer[:self.chunk_size], self.part_number
+            return self.buffer[: self.chunk_size], self.part_number
         finally:
-            del self.buffer[:self.chunk_size]
+            del self.buffer[: self.chunk_size]
             self.count -= max(0, self.chunk_size)
             self.part_number += 1
 

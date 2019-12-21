@@ -3,7 +3,7 @@ from typing import Iterable, TypeVar, Generic, List, Union, Generator
 
 from fpipe.file.file import FileStream, File
 
-T = TypeVar('T', File, FileStream)
+T = TypeVar("T", File, FileStream)
 
 
 class FileGenerator(Generic[T]):
@@ -17,7 +17,7 @@ class FileGenerator(Generic[T]):
     def reset(self):
         self.sources.clear()
 
-    def chain(self, source: Union[Iterable[File], File]) -> 'FileGenerator[T]':
+    def chain(self, source: Union[Iterable[File], File]) -> "FileGenerator[T]":
         self.sources.append(source)
         return self
 
