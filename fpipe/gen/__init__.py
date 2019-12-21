@@ -4,3 +4,4 @@ from .program import Program  # noqa:F401
 from .s3 import S3  # noqa:F401
 from .tar import Tar  # noqa:F401
 from .ftp import FTP  # noqa:F401
+from .callable import Method  # noqa:F401

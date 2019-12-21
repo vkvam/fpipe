@@ -4,7 +4,7 @@ from unittest import TestCase
 
 from fpipe.file import FileStream
 from fpipe.gen import Meta
-from fpipe.gen.callable import CallableGen
+from fpipe.gen import Method
 from fpipe.gen.flush import Flush
 from fpipe.meta import Size
 from fpipe.workflow import WorkFlow
@@ -28,8 +28,8 @@ class TestFlush(TestCase):
         workflow = WorkFlow(
             Meta(Size),
             Flush(),
-            CallableGen(assert_file_properties),
-            CallableGen(assert_file_sizes)
+            Method(assert_file_properties),
+            Method(assert_file_sizes)
         )
 
         workflow.compose(TestStream(s, f'{s}', reversible=True) for s in stream_sizes).flush()
@@ -45,7 +45,7 @@ class TestFlush(TestCase):
 
         workflow = WorkFlow(
             Meta(Size),
-            CallableGen(assert_file_properties)
+            Method(assert_file_properties)
         )
 
         for f in workflow.compose(TestStream(s, f'{s}', reversible=True) for s in stream_sizes).flush_iter():

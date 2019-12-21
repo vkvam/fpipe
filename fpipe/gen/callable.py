@@ -14,16 +14,9 @@ class CallableResponse:
         self.threads = thread
 
 
-class CallableGen(FileGenerator[T]):
-    def __init__(
-        self,
-        executor: Optional[
-            Callable[[File], Optional[Generator[CallableResponse, None, None]]]
-        ] = None,
-    ):
+class MethodGen(FileGenerator[T]):
+    def __init__(self):
         super().__init__()
-        if executor:
-            self.executor = executor
 
     @abstractmethod
     def executor(
@@ -51,3 +44,19 @@ class CallableGen(FileGenerator[T]):
                         yield source
             else:
                 yield source
+
+
+class Method(MethodGen[T]):
+    def __init__(
+        self,
+        executor: Optional[
+            Callable[[File], Optional[Generator[CallableResponse, None, None]]]
+        ] = None,
+    ):
+        super().__init__()
+        self.callable = executor
+
+    def executor(
+        self, source: File
+    ) -> Optional[Generator[CallableResponse, None, None]]:
+        return self.callable(source)

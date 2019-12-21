@@ -1,4 +1,4 @@
-from typing import Optional, Type, IO, Iterable, Union
+from typing import Optional, Type, Iterable, Union, BinaryIO
 
 from fpipe.exceptions import FileMetaException
 from fpipe.meta.abstract import FileMeta, MetaMap, T
@@ -44,7 +44,7 @@ class FileStream(File):
 
     def __init__(
         self,
-        file: IO[bytes],
+        file: BinaryIO,
         parent: Optional["File"] = None,
         meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None,
     ):
@@ -52,7 +52,7 @@ class FileStream(File):
         self.__f = file
 
     @property
-    def file(self) -> IO[bytes]:
+    def file(self) -> BinaryIO:
         return self.__f
 
 
@@ -60,5 +60,3 @@ class SeekableFileStream(FileStream):
     """
     A seekable file-like
     """
-
-    pass

@@ -1,25 +1,32 @@
-#!/usr/bin/env python3
-
 import math
 import threading
-from typing import Optional, List, Tuple, IO, Iterator, AnyStr, Iterable, Type
+from typing import (
+    Optional,
+    List,
+    Tuple,
+    BinaryIO,
+    Iterator,
+    AnyStr,
+    Iterable,
+    Type,
+)
 
 from fpipe.exceptions import SeekException, FileException
 
 
-class S3FileReader(IO[bytes]):
+class S3FileReader(BinaryIO):
     def __init__(
-            self,
-            s3_client,
-            s3_resource,
-            bucket,
-            key,
-            cache_size=5 * 2 ** 20,
-            cache_chunk_count_limit=4,
-            lock: Optional[threading.Lock] = None,
-            meta_lock: Optional[threading.Lock] = None,
-            version: Optional[str] = None,
-            seekable=True,
+        self,
+        s3_client,
+        s3_resource,
+        bucket,
+        key,
+        cache_size=5 * 2 ** 20,
+        cache_chunk_count_limit=4,
+        lock: Optional[threading.Lock] = None,
+        meta_lock: Optional[threading.Lock] = None,
+        version: Optional[str] = None,
+        seekable=True,
     ):
         self.s3_client = s3_client
         self.s3_resource = s3_resource
@@ -58,10 +65,10 @@ class S3FileReader(IO[bytes]):
         return self
 
     def __exit__(
-            self,
-            t: Optional[Type[BaseException]],
-            value: Optional[BaseException],
-            traceback: Optional,
+        self,
+        t: Optional[Type[BaseException]],
+        value: Optional[BaseException],
+        traceback: Optional,
     ) -> bool:
         self.close()
         return t is None
@@ -78,7 +85,7 @@ class S3FileReader(IO[bytes]):
                     return
         else:
             for obj in self.s3_resource.Bucket(self.bucket).objects.filter(
-                    Prefix=self.key
+                Prefix=self.key
             ):
                 if obj.key == self.key:
                     self._size = obj.size
@@ -94,7 +101,8 @@ class S3FileReader(IO[bytes]):
         return self.offset
 
     def seek(self, offset, whence=0):
-        self.locked and self._unlock()
+        if self.locked:
+            self._unlock()
         if not self.__seekable:
             raise SeekException("S3 seek not enabled")
         if whence == 0:
@@ -128,9 +136,7 @@ class S3FileReader(IO[bytes]):
                 or self.s3_client.get_object(
                     Bucket=self.bucket,
                     Key=self.key,
-                    **(
-                        {"VersionId": self.version} if self.version else {}
-                    )
+                    **({"VersionId": self.version} if self.version else {}),
                 )["Body"]
             )
             return self.obj_body.read(count)
@@ -147,17 +153,17 @@ class S3FileReader(IO[bytes]):
 
             while chunk_start is not None:
                 while (
-                        chunk_start
-                        <= self.offset
-                        < chunk_start + self.cache_chunk_size
-                        and self.offset < end
+                    chunk_start
+                    <= self.offset
+                    < chunk_start + self.cache_chunk_size
+                    and self.offset < end
                 ):
                     chunk_offset = self.offset - chunk_start
                     self.offset = min(end, chunk_start + self.cache_chunk_size)
                     if data:
-                        data += chunk_bytes[chunk_offset: end - chunk_start]
+                        data += chunk_bytes[chunk_offset:end - chunk_start]
                     else:
-                        data = chunk_bytes[chunk_offset: end - chunk_start]
+                        data = chunk_bytes[chunk_offset:end - chunk_start]
 
                 if self.offset < end:
                     self.last_chunk = (

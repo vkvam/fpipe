@@ -1,9 +1,9 @@
 import threading
 from time import sleep
-from typing import IO, Optional, Type, Iterator, AnyStr, Iterable, List
+from typing import Optional, Type, Iterator, AnyStr, Iterable, List, BinaryIO
 
 
-class BytesLoop(IO[bytes]):
+class BytesLoop(BinaryIO):
     def __init__(self, buf_size=2 ** 14, lock_wait=0.00001):
         self.buffer = bytearray()
         self.done = False
@@ -60,7 +60,7 @@ class BytesLoop(IO[bytes]):
                 self.lock.release()
                 sleep(self.lock_wait)
 
-    def __enter__(self) -> IO[bytes]:
+    def __enter__(self) -> BinaryIO:
         return self
 
     def close(self) -> None:

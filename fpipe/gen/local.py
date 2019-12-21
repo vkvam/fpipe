@@ -3,12 +3,25 @@ from typing import Callable, Optional
 
 from fpipe.file.file import File, FileStream, SeekableFileStream
 from fpipe.file.local import LocalFile
-from fpipe.gen.callable import CallableGen, CallableResponse
+from fpipe.gen.callable import MethodGen, CallableResponse
 from fpipe.meta.path import Path
 from fpipe.utils.bytesloop import BytesLoop
 
 
-class Local(CallableGen[FileStream]):
+def _process(
+    source: FileStream, path_name: str, byte_loop: Optional[BytesLoop] = None
+):
+    with open(path_name, "wb") as f2:
+        while True:
+            b = source.file.read(2 ** 14)
+            if byte_loop:
+                byte_loop.write(b)
+            f2.write(b)
+            if not b:
+                break
+
+
+class Local(MethodGen[FileStream]):
     def __init__(
         self,
         pass_through=False,
@@ -23,21 +36,6 @@ class Local(CallableGen[FileStream]):
         super().__init__()
         self.pass_through = pass_through
         self.pathname_resolver = pathname_resolver
-
-    def __process(
-        self,
-        source: FileStream,
-        path_name: str,
-        byte_loop: Optional[BytesLoop] = None,
-    ):
-        with open(path_name, "wb") as f2:
-            while True:
-                b = source.file.read(2 ** 14)
-                if byte_loop:
-                    byte_loop.write(b)
-                f2.write(b)
-                if not b:
-                    break
 
     def executor(self, source: File):
         path_name = (
@@ -56,7 +54,7 @@ class Local(CallableGen[FileStream]):
             if self.pass_through:
                 with BytesLoop() as byte_loop:
                     proc_thread = threading.Thread(
-                        target=self.__process,
+                        target=_process,
                         args=(source, path_name, byte_loop),
                         name=f"{self.__class__.__name__}",
                         daemon=True,
@@ -66,7 +64,7 @@ class Local(CallableGen[FileStream]):
                         proc_thread,
                     )
             else:
-                self.__process(source, path_name)
+                _process(source, path_name)
                 with open(source.meta(Path).value, "rb") as f:
                     yield CallableResponse(
                         SeekableFileStream(f, parent=source, meta=path_meta)

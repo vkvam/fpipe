@@ -3,7 +3,7 @@ from typing import Union, Optional, Generator, Callable
 from fpipe.exceptions import FileException, FileMetaException
 from fpipe.file import FileStream, File
 from fpipe.file.s3 import S3File, S3PrefixFile, S3SeekableFileStream
-from fpipe.gen.callable import CallableGen, CallableResponse
+from fpipe.gen.callable import MethodGen, CallableResponse
 from fpipe.meta import Path, Version
 from fpipe.utils.mime import guess_mime
 from fpipe.utils.s3 import list_objects
@@ -11,16 +11,16 @@ from fpipe.utils.s3_reader import S3FileReader
 from fpipe.utils.s3_writer import S3FileWriter
 
 
-class S3(CallableGen[FileStream]):
+class S3(MethodGen[FileStream]):
     f_type = Union[S3File, S3PrefixFile, FileStream]
 
     def __init__(
-            self,
-            client,
-            resource,
-            bucket: Optional[str] = None,
-            seekable=False,
-            pathname_resolver: Callable[[File], str] = None,
+        self,
+        client,
+        resource,
+        bucket: Optional[str] = None,
+        seekable=False,
+        pathname_resolver: Callable[[File], str] = None,
     ):
         super().__init__()
         self.bucket = bucket
@@ -31,14 +31,15 @@ class S3(CallableGen[FileStream]):
 
     @staticmethod
     def write_to_s3(
-            client,
-            bucket,
-            path,
-            reader,
-            read_lock,
-            source: FileStream,
-            mime: str,
-            encoding: str):
+        client,
+        bucket,
+        path,
+        reader,
+        read_lock,
+        source: FileStream,
+        mime: str,
+        encoding: str,
+    ):
         with S3FileWriter(client, bucket, path.value, mime) as writer:
             while True:
                 b = source.file.read(writer.buffer.chunk_size)
@@ -51,7 +52,7 @@ class S3(CallableGen[FileStream]):
         read_lock.release()
 
     def executor(
-            self, source: File
+        self, source: File
     ) -> Optional[Generator[CallableResponse, None, None]]:
         client, resource = self.client, self.resource
 
@@ -63,12 +64,12 @@ class S3(CallableGen[FileStream]):
                 version = None
 
             with S3FileReader(
-                    client,
-                    resource,
-                    bucket,
-                    key.value,
-                    version=version.value if version else None,
-                    seekable=self.seekable,
+                client,
+                resource,
+                bucket,
+                key.value,
+                version=version.value if version else None,
+                seekable=self.seekable,
             ) as reader:
                 yield CallableResponse(
                     S3SeekableFileStream(reader, parent=source)
@@ -77,8 +78,7 @@ class S3(CallableGen[FileStream]):
             bucket, prefix = source.bucket, source.prefix
             for o in list_objects(client, bucket, prefix):
                 with S3FileReader(
-                        client, resource, bucket, o["Key"],
-                        seekable=self.seekable
+                    client, resource, bucket, o["Key"], seekable=self.seekable
                 ) as reader:
                     yield CallableResponse(
                         S3SeekableFileStream(reader, parent=source)
@@ -97,13 +97,13 @@ class S3(CallableGen[FileStream]):
             mime, encoding = guess_mime(path.value)
             read_lock = Lock()
             with S3FileReader(
-                    client,
-                    resource,
-                    bucket,
-                    path.value,
-                    lock=read_lock,
-                    meta_lock=Lock(),
-                    seekable=self.seekable,
+                client,
+                resource,
+                bucket,
+                path.value,
+                lock=read_lock,
+                meta_lock=Lock(),
+                seekable=self.seekable,
             ) as reader:
 
                 thread_args = (

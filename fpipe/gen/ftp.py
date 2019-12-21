@@ -1,4 +1,4 @@
-from fpipe.gen.callable import CallableGen
+from fpipe.gen.callable import MethodGen
 from fpipe.file import FTPFile
 from fpipe.gen.abstract import FileStream
 from fpipe.gen.callable import CallableResponse
@@ -6,7 +6,7 @@ from fpipe.meta.path import Path
 from fpipe.utils.ftp import FTPClient
 
 
-class FTP(CallableGen[FileStream]):
+class FTP(MethodGen[FileStream]):
     def executor(self, source: FTPFile):
         ftp_client = FTPClient(
             host=source.host,

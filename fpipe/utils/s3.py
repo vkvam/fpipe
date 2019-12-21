@@ -1,13 +1,11 @@
 
 
 def list_objects(
-        client,
-        bucket: str,
-        prefix: str = None,
-        use_generator: bool = True
+    client, bucket: str, prefix: str = None, use_generator: bool = True
 ):
     """
     Get all objects as a generator.
+    :param client: boto3 s3 client
     :param bucket: Bucket name
     :param prefix: Object prefix
     :param use_generator: Use generator

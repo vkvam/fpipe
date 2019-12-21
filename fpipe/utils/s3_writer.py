@@ -1,7 +1,7 @@
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
-from typing import IO, AnyStr, List, Optional, Iterable, Iterator, Type
+from typing import AnyStr, List, Optional, Iterable, Iterator, Type, BinaryIO
 
 from botocore.client import BaseClient
 from botocore.exceptions import (
@@ -14,7 +14,7 @@ from fpipe.utils.part_buffer import Buffer
 from fpipe.utils.s3_writer_worker import S3FileProgress, worker
 
 
-class S3FileWriter(IO[bytes], ThreadPoolExecutor):
+class S3FileWriter(BinaryIO, ThreadPoolExecutor):
     MIN_BLOCK_SIZE = 5 * 2 ** 20
 
     def __init__(
@@ -80,7 +80,7 @@ class S3FileWriter(IO[bytes], ThreadPoolExecutor):
         self.mpu = self.client.create_multipart_upload(**arguments)
         self.progress_queue.put("Created multipart upload")
 
-        for i in range(self.worker_limit):
+        for _ in range(self.worker_limit):
             self.submit(
                 worker,
                 self.client,

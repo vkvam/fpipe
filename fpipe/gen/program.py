@@ -5,11 +5,11 @@ from typing import Optional, Generator, Union, List
 
 from fpipe.file import File
 from fpipe.file.file import FileStream
-from fpipe.gen.callable import CallableGen, CallableResponse
+from fpipe.gen.callable import MethodGen, CallableResponse
 from fpipe.utils.bytesloop import BytesLoop
 
 
-class Program(CallableGen[FileStream]):
+class Program(MethodGen[FileStream]):
     def __init__(
         self,
         command: Union[List[str], str],

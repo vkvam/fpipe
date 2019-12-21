@@ -1,7 +1,7 @@
 import ftplib
 import socket
 import threading
-from typing import IO
+from typing import BinaryIO
 
 from fpipe.utils.bytesloop import BytesLoop
 
@@ -33,7 +33,7 @@ class FTPClient(object):
             )
             return thread, bytes_io
 
-    def write_to_file(self, path: str, bytes_io: IO[bytes]):
+    def write_to_file(self, path: str, bytes_io: BinaryIO):
         ftp = self._get_session()
         exception = None
 

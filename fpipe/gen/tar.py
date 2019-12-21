@@ -4,13 +4,13 @@ from typing import Optional, Generator
 
 
 from fpipe.file.file import FileStream
-from fpipe.gen.callable import CallableGen, CallableResponse
+from fpipe.gen.callable import MethodGen, CallableResponse
 from fpipe.meta import Modified
 from fpipe.meta.path import Path
 from fpipe.meta.size import Size
 
 
-class Tar(CallableGen[FileStream]):
+class Tar(MethodGen[FileStream]):
     def executor(
         self, source: FileStream
     ) -> Optional[Generator[CallableResponse, None, None]]:

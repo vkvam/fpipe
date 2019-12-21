@@ -1,8 +1,8 @@
 from fpipe.file.file import FileStream
-from fpipe.gen.callable import CallableGen
+from fpipe.gen.callable import MethodGen
 
 
-class Flush(CallableGen):
+class Flush(MethodGen):
     """
     Generator that empties files from generators, then yields them.
     """
