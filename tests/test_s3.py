@@ -2,9 +2,15 @@ import datetime
 import io
 import tarfile
 from copy import copy, deepcopy
+from queue import Queue
+from threading import Event
 from unittest import TestCase
 
 from typing import IO, Iterable, List
+
+import botocore
+from boto.file import Key
+from mock import patch, Mock
 
 from fpipe.exceptions import SeekException, FileException, FileMetaException
 from fpipe.gen import Meta, S3, Tar
@@ -14,6 +20,7 @@ from fpipe.meta import Mime, Modified, Version, Path, Size
 from moto import mock_s3, mock_iam, mock_config
 
 from fpipe.meta.checksum import MD5
+from fpipe.utils.s3_writer_worker import worker, CorruptedMultipartError
 from fpipe.workflow import WorkFlow
 from test_utils.test_file import TestStream
 
@@ -41,7 +48,7 @@ class TestS3(TestCase):
     @mock_config
     def test_s3_meta(self):
         client, resource, bucket = self.__init_s3()
-        size = 2 ** 24
+        size = 2 ** 20
 
         test_stream = TestStream(
             size,
@@ -65,7 +72,6 @@ class TestS3(TestCase):
             with self.assertRaises(FileMetaException):
                 # It is not possible to retrieve size from FileMetaGenerator before the complete stream has been read
                 x = f.meta(MD5).value
-
             cnt = f.file.read()
             test_stream.file.seek(0)
             size_calc = f.meta(Size).value
@@ -75,7 +81,8 @@ class TestS3(TestCase):
             self.assertEqual(f.meta(Size, 1).value, size)
 
             self.assertEqual(cnt, test_stream.file.read())
-            self.assertIsInstance(f.parent.meta(Modified).value, datetime.datetime)
+            self.assertIsInstance(f.parent.meta(Modified).value,
+                                  datetime.datetime)
             self.assertIsInstance(f.meta(Modified).value, datetime.datetime)
 
     @mock_s3
@@ -99,12 +106,68 @@ class TestS3(TestCase):
             client,
             resource,
             seekable=False
-        ).chain(S3PrefixFile(bucket, prefix) for prefix in prefixes)
+        ).chain(
+            S3PrefixFile(bucket, prefix) for prefix in prefixes
+        )
 
         for f in gen:
             source_key, source_body = all_files_copy.pop(0)
             self.assertEqual(f.file.read(), source_body)
         self.assertEqual(len(all_files_copy), 0)
+
+    @mock_s3
+    @mock_iam
+    @mock_config
+    @patch('fpipe.utils.s3_writer_worker.checksum_validates')
+    def test_s3_writer_worker_exception_checksum(self, mocked):
+        mocked.return_value = False
+        client, resource, bucket = self.__init_s3()
+        key = 'huhu'
+        arguments = {
+            "Bucket": bucket,
+            "Key": key,
+            "ContentType": "application/octet-stream",
+        }
+
+        mpu = client.create_multipart_upload(**arguments)
+
+        q = Queue()
+        q.put((b'', 1))
+        q.put((b'', 1))
+        with self.assertRaises(CorruptedMultipartError):
+            worker(client,
+                   Event(), q, Queue(), Queue(), bucket, key, mpu["UploadId"],
+                   1)
+
+    @mock_s3
+    @mock_iam
+    @mock_config
+    @patch('fpipe.utils.s3_writer_worker.checksum_validates')
+    def test_s3_writer_worker_exception_botocore(self, mocked):
+        from botocore import exceptions
+        mocked.return_value = False
+        parsed_response = {
+            'Error': {'Code': '500', 'Message': 'Error Uploading'}}
+        e = exceptions.ClientError(parsed_response, 'UploadPartCopy')
+
+        mocked.side_effect = e
+        client, resource, bucket = self.__init_s3()
+        key = 'huhu'
+        arguments = {
+            "Bucket": bucket,
+            "Key": key,
+            "ContentType": "application/octet-stream",
+        }
+
+        mpu = client.create_multipart_upload(**arguments)
+
+        q = Queue()
+        q.put((b'', 1))
+        q.put((b'', 1))
+        with self.assertRaises(exceptions.ClientError):
+            worker(client,
+                   Event(), q, Queue(), Queue(), bucket, key, mpu["UploadId"],
+                   1)
 
     @mock_s3
     @mock_iam
@@ -122,7 +185,8 @@ class TestS3(TestCase):
 
         self.__create_objects(client, bucket, all_files)
         gen = S3(
-            client, resource,
+            client,
+            resource,
             seekable=False
         ).chain((S3File(bucket, key) for key, _ in all_files))
 
@@ -175,7 +239,8 @@ class TestS3(TestCase):
             seek(files, 0)
 
             # Assert files have seeked identical by comparing them
-            assert_file_content([f.read(extract_length) for f in files], extract_length)
+            assert_file_content([f.read(extract_length) for f in files],
+                                extract_length)
             signal = True
 
         self.assertTrue(signal)
@@ -186,11 +251,13 @@ class TestS3(TestCase):
     def test_exceptions(self):
         client, resource, bucket = self.__init_s3()
         with self.assertRaises(SeekException):
-            for f in S3(client, resource, bucket=bucket).chain(TestStream(1, 'xyz', reversible=True)):
+            for f in S3(client, resource, bucket=bucket).chain(
+                    TestStream(1, 'xyz', reversible=True)):
                 f.file.seek(0, 3)
 
         with self.assertRaises(FileException):
-            for f in S3(client, resource).chain(TestStream(1, 'xyz', reversible=True)):
+            for f in S3(client, resource).chain(
+                    TestStream(1, 'xyz', reversible=True)):
                 f.file.seek(0, 3)
 
         with self.assertRaises(FileException):
@@ -226,11 +293,11 @@ class TestS3(TestCase):
         ).chain(test_streams)
 
         # Note: f.meta(S3Version) will raise exception since moto does not give version for multiparts
-        # versions = [[f.meta(S3Key), f.file.read() and f.meta(S3Version)] for f in gen]
+        # versions = [[f.meta(Key), f.file.read() and f.meta(Version)] for f in gen]
         versions = [[f.file.read() and f.meta(Path).value, '?'] for f in gen]
 
-        # Horrible hack since moto does not return VersionId for multipart uploads
-        for idx, version in enumerate(resource.Bucket(bucket).object_versions.filter(Prefix='xyz')):
+        for idx, version in enumerate(
+                resource.Bucket(bucket).object_versions.filter(Prefix='xyz')):
             obj = version.get()
             version = obj.get('VersionId')
             versions[idx][1] = version
@@ -264,7 +331,6 @@ class TestS3(TestCase):
     @mock_iam
     @mock_config
     def test_readme_example(self):
-
         file = ('abc', 2 ** 14)
         f = io.BytesIO()
 

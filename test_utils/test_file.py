@@ -9,56 +9,56 @@ from fpipe.meta.path import Path
 
 class TestFile(IO[bytes]):
     def close(self) -> None:
-        pass
+        raise NotImplementedError
 
     def fileno(self):
-        pass
+        raise NotImplementedError
 
     def flush(self):
-        pass
+        raise NotImplementedError
 
     def isatty(self):
-        pass
+        raise NotImplementedError
 
     def readable(self):
-        pass
+        raise NotImplementedError
 
     def readline(self, limit: int = ...):
-        pass
+        raise NotImplementedError
 
     def readlines(self, hint: int = ...):
-        pass
+        raise NotImplementedError
 
     def seekable(self) -> bool:
         return True
 
     def tell(self):
-        pass
+        raise NotImplementedError
 
     def truncate(self, size: Optional[int] = ...):
-        pass
+        raise NotImplementedError
 
     def writable(self) -> bool:
-        pass
+        raise NotImplementedError
 
     def write(self, s: AnyStr) -> int:
-        pass
+        raise NotImplementedError
 
     def writelines(self, lines: Iterable[AnyStr]):
-        pass
+        raise NotImplementedError
 
     def __next__(self):
-        pass
+        raise NotImplementedError
 
     def __iter__(self):
-        pass
+        raise NotImplementedError
 
     def __enter__(self):
-        pass
+        raise NotImplementedError
 
     def __exit__(self, t: Optional[Type[BaseException]], value: Optional[BaseException],
                  traceback: Optional[TracebackType]):
-        pass
+        raise NotImplementedError
 
     def __init__(self, size):
         self.size = size

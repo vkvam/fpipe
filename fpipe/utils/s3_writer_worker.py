@@ -20,16 +20,20 @@ class S3FileProgress(object):
         return "{}: {}".format(self.name, self.data)
 
 
+def checksum_validates(data_etag, s3_etag):
+    return data_etag == s3_etag[1:-1]
+
+
 def worker(
-    client: BaseClient,
-    stop_workers_request: Event,
-    work_queue: Queue,
-    result_queue: Queue,
-    progress_queue: Queue,
-    bucket: str,
-    key: str,
-    upload_id: str,
-    max_retries: int,
+        client: BaseClient,
+        stop_workers_request: Event,
+        work_queue: Queue,
+        result_queue: Queue,
+        progress_queue: Queue,
+        bucket: str,
+        key: str,
+        upload_id: str,
+        max_retries: int,
 ):
     retries = 0
 
@@ -55,7 +59,7 @@ def worker(
 
             s3_etag = part["ETag"]
 
-            if data_etag != s3_etag[1:-1]:
+            if not checksum_validates(data_etag, s3_etag):
                 progress = S3FileProgress(
                     "Part nr {} upload".format(part_index),
                     "Incorrect checksum {}!={}".format(data_etag, s3_etag),

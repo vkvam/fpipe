@@ -18,18 +18,18 @@ class S3FileWriter(BinaryIO, ThreadPoolExecutor):
     MIN_BLOCK_SIZE = 5 * 2 ** 20
 
     def __init__(
-        self,
-        s3_client: BaseClient,
-        # Most suitable type found in boto3/botocore
-        bucket: str,
-        key: str,
-        mime: str,
-        block_size: int = MIN_BLOCK_SIZE,
-        full_control: str = None,
-        worker_limit: int = 4,
-        progress_queue: Optional[Queue] = None,
-        max_part_upload_retries: int = 10,
-        queue_timeout=300,
+            self,
+            s3_client: BaseClient,
+            # Most suitable type found in boto3/botocore
+            bucket: str,
+            key: str,
+            mime: str,
+            block_size: int = MIN_BLOCK_SIZE,
+            full_control: str = None,
+            worker_limit: int = 4,
+            progress_queue: Optional[Queue] = None,
+            max_part_upload_retries: int = 10,
+            queue_timeout=300,
     ):
         """
 
@@ -121,9 +121,15 @@ class S3FileWriter(BinaryIO, ThreadPoolExecutor):
             self.stop_workers_request.set()
             self.shutdown()
         finally:
-            self.client.abort_multipart_upload(
-                Bucket=self.bucket, Key=self.key, UploadId=self.mpu["UploadId"]
-            )
+            try:
+                self.client.abort_multipart_upload(
+                    Bucket=self.bucket, Key=self.key,
+                    UploadId=self.mpu["UploadId"]
+                )
+            except (KeyError, ClientError) as e:
+                raise S3WriteException(
+                    "Could not close multipart upload"
+                ) from e
 
     def close(self):
         try:
@@ -150,11 +156,12 @@ class S3FileWriter(BinaryIO, ThreadPoolExecutor):
             self.progress_queue.put(
                 S3FileProgress("Multipart", "Multipart upload complete")
             )
-            self.shutdown()
         except BotoCoreError:
             raise
         except Exception as e:
             raise S3WriteException("Could not close Multipart upload") from e
+        finally:
+            self.shutdown()
 
     # TODO: Fix all under
     def readable(self) -> bool:

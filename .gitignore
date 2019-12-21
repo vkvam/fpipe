@@ -30,7 +30,6 @@ tags
 # Unittest and coverage
 htmlcov/*
 .coverage
-.coveragerc
 .tox
 .dmypy.json
 junit.xml
