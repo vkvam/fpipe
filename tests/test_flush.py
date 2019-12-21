@@ -3,10 +3,10 @@ from copy import copy
 from unittest import TestCase
 
 from fpipe.file import FileStream
-from fpipe.gen import MetaGen
+from fpipe.gen import Meta
 from fpipe.gen.callable import CallableGen
-from fpipe.gen.flush import FlushGen
-from fpipe.meta import SizeCalculated
+from fpipe.gen.flush import Flush
+from fpipe.meta import Size
 from fpipe.workflow import WorkFlow
 from test_utils.test_file import TestStream
 
@@ -23,11 +23,11 @@ class TestFlush(TestCase):
             self.assertTrue(_f.writable())
 
         def assert_file_sizes(file_stream: FileStream):
-            self.assertEqual(file_stream.meta(SizeCalculated).value, stream_sizes_copy.pop(0))
+            self.assertEqual(file_stream.meta(Size).value, stream_sizes_copy.pop(0))
 
         workflow = WorkFlow(
-            MetaGen(SizeCalculated),
-            FlushGen(),
+            Meta(Size),
+            Flush(),
             CallableGen(assert_file_properties),
             CallableGen(assert_file_sizes)
         )
@@ -44,9 +44,9 @@ class TestFlush(TestCase):
             self.assertTrue(_f.writable())
 
         workflow = WorkFlow(
-            MetaGen(SizeCalculated),
+            Meta(Size),
             CallableGen(assert_file_properties)
         )
 
         for f in workflow.compose(TestStream(s, f'{s}', reversible=True) for s in stream_sizes).flush_iter():
-            self.assertEqual(f.meta(SizeCalculated).value, stream_sizes_copy.pop(0))
+            self.assertEqual(f.meta(Size).value, stream_sizes_copy.pop(0))

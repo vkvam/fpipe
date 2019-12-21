@@ -5,29 +5,35 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 # fPipe
 
-fpipe is a simple framework for creating data manipulation/validation pipelines around the python file-like api.
+fpipe is a simple framework for creating and running data manipulation pipelines.
 
-The need to cache files on disk between different file transformations quickly becomes an issue when speed and hardware concerns are a factor, and unix pipes are not able to deal with the pipeline complexity.
+The need to cache files on disk between steps becomes problematic when performance is a concern.
+Unix pipes are well suited for some problems, but become insufficient once things get too complex.
 
 An example is unpacking a tar file from a remote source (e.g. s3/ftp/http) and storing it to another remote store.
-A unix pipe is not able to output the files within the tar in addition to metadata about the file, so we can not set or modify the target path.
 
-A proposed solution using fPipe:
-```
+*One possible solution using fPipe:*
+```python
+import boto3
+from fpipe.workflow import WorkFlow
+from fpipe.gen import S3, Tar
+from fpipe.file import S3File
+from fpipe.meta import Path
+
 client = boto3.client('s3')
 resource = boto3.resource('s3')
 bucket = 'bucket'
 key = 'source.tar'
 
 WorkFlow(
-    S3Gen(client, resource),
-    TarGen(),
-    S3Gen(
+    S3(client, resource),
+    Tar(),
+    S3(
         client, resource, bucket=bucket,
         pathname_resolver=lambda x: f'MyPrefix/{x.meta(Path).value}'
     )
 ).compose(
-    S3File(bucket, S3Key(key))
+    S3File(bucket, key)
 ).flush()
 ```
 
@@ -51,13 +57,13 @@ pip3 install boto3
 
 ```python
 from fpipe.file import ByteFile
-from fpipe.gen import LocalGen, MetaGen
-from fpipe.meta import Path, SizeCalculated, MD5Calculated
+from fpipe.gen import Local, Meta
+from fpipe.meta import Path, Size, MD5
 from fpipe.workflow import WorkFlow
 
 workflow = WorkFlow(
-    LocalGen(pass_through=True),
-    MetaGen(SizeCalculated, MD5Calculated)
+    Local(pass_through=True),
+    Meta(Size, MD5)
 )
 
 for stream in workflow.compose(ByteFile(b'x' * 10, Path('x.dat')), ByteFile(b'y' * 20, Path('y.dat'))):
@@ -66,42 +72,42 @@ for stream in workflow.compose(ByteFile(b'x' * 10, Path('x.dat')), ByteFile(b'y'
     print("Stream content: ", stream.file.read().decode('utf-8'))
     with open(stream.meta(Path).value) as f:
         print("File content:", f.read())
-    print("Stream md5:", stream.meta(MD5Calculated).value)
-    print("Stream size:", stream.meta(SizeCalculated).value)
+    print("Stream md5:", stream.meta(MD5).value)
+    print("Stream size:", stream.meta(Size).value)
 ```
 
 ##### Subprocess script example
-*Stores original stream, calculates md5, encrypts using cli, stores, calculates md5, decrypts using cli and stores. Using flush_iter() we know all files have been completely read(), so MD5Calculated will be readable.*
+*Stores original stream, calculates md5, encrypts using cli, stores, calculates md5, decrypts using cli and stores. Using flush_iter() we know all files have been completely read(), so MD5 will be readable.*
 
 ```python
 from fpipe.file import ByteFile
-from fpipe.gen import LocalGen, MetaGen, ProcessGen
-from fpipe.meta import Path, MD5Calculated
+from fpipe.gen import Local, Meta, Program
+from fpipe.meta import Path, MD5
 from fpipe.workflow import WorkFlow
 
 workflow = WorkFlow(
-    MetaGen(MD5Calculated),
-    LocalGen(pass_through=True),
+    Meta(MD5),
+    Local(pass_through=True),
 
-    ProcessGen("gpg --batch --symmetric --passphrase 'secret'"),
-    MetaGen(MD5Calculated),
-    LocalGen(pass_through=True, pathname_resolver=lambda x: f'{x.meta(Path).value}.gpg'),
+    Program("gpg --batch --symmetric --passphrase 'secret'"),
+    Meta(MD5),
+    Local(pass_through=True, pathname_resolver=lambda x: f'{x.meta(Path).value}.gpg'),
 
-    ProcessGen("gpg --batch --decrypt --passphrase 'secret'"),
-    MetaGen(MD5Calculated),
-    LocalGen(pass_through=True, pathname_resolver=lambda x: f'{x.meta(Path).value}.decrypted')
+    Program("gpg --batch --decrypt --passphrase 'secret'"),
+    Meta(MD5),
+    Local(pass_through=True, pathname_resolver=lambda x: f'{x.meta(Path).value}.decrypted')
 )
 
 for f in workflow.compose(ByteFile(b'x' * 10, Path('x.orig')), ByteFile(b'y' * 20, Path('y.orig'))).flush_iter():
     print(f'\n{"-"*46}\n')
     print("Original path:", f.meta(Path, 2).value)
-    print("Original md5:", f.meta(MD5Calculated, 2).value, end='\n\n')
+    print("Original md5:", f.meta(MD5, 2).value, end='\n\n')
 
     print("Encrypted path:", f.meta(Path, 1).value)
-    print("Encrypted md5:", f.meta(MD5Calculated, 1).value, end='\n\n')
+    print("Encrypted md5:", f.meta(MD5, 1).value, end='\n\n')
 
     print("Decrypted path:", f.meta(Path).value)
-    print("Decrypted md5:", f.meta(MD5Calculated).value)
+    print("Decrypted md5:", f.meta(MD5).value)
 
 ```
 

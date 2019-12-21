@@ -1,6 +1,8 @@
+import re
+import shlex
 import subprocess
 import threading
-from typing import Optional, Generator
+from typing import Optional, Generator, Union, List
 
 from fpipe.file import File
 from fpipe.file.file import FileStream
@@ -8,11 +10,18 @@ from fpipe.gen.callable import CallableGen, CallableResponse
 from fpipe.utils.bytesloop import BytesLoop
 
 
-class ProcessGen(CallableGen[FileStream]):
+class Program(CallableGen[FileStream]):
 
-    def __init__(self, cmd, buf_size=2 ** 14, std_err=False):
+    def __init__(self, command: Union[List[str], str], buf_size=2 ** 14, std_err=False, posix=True):
+        """
+        :param command: if a string is passed, shell
+        :param buf_size: buffer_size for the subprocess to use
+        :param std_err: handle stderr (currently unsupported)
+        :param posix=True, used by shlex to determine how to parse command
+        """
         super().__init__()
-        self.cmd = cmd
+
+        self.command = shlex.split(command, posix=posix) if isinstance(command, str) else command
         self.buf_size = buf_size
         self.std_err = std_err
         if std_err:
@@ -45,11 +54,10 @@ class ProcessGen(CallableGen[FileStream]):
         run_std_in = isinstance(source, FileStream)
 
         with BytesLoop(self.buf_size) as byte_loop:
-            with subprocess.Popen(self.cmd,
+            with subprocess.Popen(self.command,
                                   stdin=subprocess.PIPE if run_std_in else None,
                                   stdout=subprocess.PIPE,
                                   stderr=subprocess.PIPE if self.std_err else subprocess.DEVNULL,
-                                  shell=isinstance(self.cmd, str)
                                   ) as proc:
                 threads = [
                     threading.Thread(

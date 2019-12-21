@@ -1,24 +1,21 @@
 import hashlib
 
-from fpipe.exceptions import FileInfoException
-from fpipe.meta.abstract import FileMetaCalculator
+from fpipe.meta.abstract import FileMetaFuture, FileMetaCalculator
 
 
-class MD5Calculated(FileMetaCalculator[str]):
-    def __init__(self):
+class MD5Calculator(FileMetaCalculator[str]):
+
+    def __init__(self, calculable: 'MD5'):
+        super().__init__(calculable)
         self.__sig = hashlib.md5()
-        self.done = False
-        self.v: str = ''
 
     def write(self, b: bytes):
         self.__sig.update(b)
-        if b == b'':
-            self.v = self.__sig.hexdigest()
-            self.done = True
+        if not b:
+            self.calculable.set_value(self.__sig.hexdigest())
 
-    @property
-    def value(self) -> str:
-        if self.done:
-            return self.v
-        else:
-            raise FileInfoException(self)
+
+class MD5(FileMetaFuture[str]):
+    @staticmethod
+    def get_calculator() -> FileMetaCalculator[str]:
+        return MD5Calculator(MD5())

@@ -2,9 +2,9 @@ import hashlib
 
 from unittest import TestCase
 
-from fpipe.gen import ProcessGen, MetaGen
-from fpipe.meta import MD5Calculated, Path,  SizeCalculated
-from fpipe.exceptions import FileInfoException
+from fpipe.gen import Program, Meta
+from fpipe.meta import MD5, Path,  Size
+from fpipe.exceptions import FileMetaException
 from test_utils.test_file import ReversibleTestFile, TestStream
 
 
@@ -28,27 +28,28 @@ class TestMeta(TestCase):
         ]
 
         # Get checksum for initial files
-        gen = MetaGen(MD5Calculated, SizeCalculated).chain(
+        gen = Meta(MD5, Size).chain(
             TestStream(s, f'{s}', reversible=True) for s in stream_sizes
         )
 
         # Reverse stdout
-        gen = ProcessGen("rev|tr -d '\n'").chain(gen)
+        gen = Program("rev").chain(gen)
+        gen = Program("tr -d '\n'").chain(gen)
 
         # Get checksum for reversed files
-        for f in MetaGen(MD5Calculated, SizeCalculated).chain(gen):
+        for f in Meta(MD5, Size).chain(gen):
             f.file.read(1)
             # Assert that we are not able to retrieve calculated data before files have been completely read
-            with self.assertRaises(FileInfoException):
-                x = f.meta(MD5Calculated).value
+            with self.assertRaises(FileMetaException):
+                x = f.meta(MD5).value
 
-            with self.assertRaises(FileInfoException):
-                x = f.meta(SizeCalculated).value
+            with self.assertRaises(FileMetaException):
+                x = f.meta(Size).value
             f.file.read()
 
             # Assert that checksum created in two different ways are equal
-            self.assertEqual(f.parent.parent.meta(MD5Calculated).value, md5_of_files.pop(0))
-            self.assertEqual(f.meta(MD5Calculated).value, md5_of_reversed_files.pop(0))
-            self.assertEqual(f.meta(Path).value, str(f.meta(SizeCalculated).value))
+            self.assertEqual(f.parent.parent.meta(MD5).value, md5_of_files.pop(0))
+            self.assertEqual(f.meta(MD5).value, md5_of_reversed_files.pop(0))
+            self.assertEqual(f.meta(Path).value, str(f.meta(Size).value))
         # Assert that we've checked all files
         self.assertEqual(len(md5_of_files) + len(md5_of_reversed_files), 0)

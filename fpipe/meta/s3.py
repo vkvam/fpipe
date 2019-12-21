@@ -1,55 +1,34 @@
-import datetime
-from typing import TypeVar, Iterable
+from typing import Iterable, Type
 
-from fpipe.exceptions import FileInfoException
-from fpipe.meta.abstract import FileMeta, FileMetaValue
+from fpipe.exceptions import FileMetaException
+from fpipe.meta import Version
+from fpipe.meta.modified import Modified
+from fpipe.meta.mime import Mime
+from fpipe.meta.path import Path
+from fpipe.meta.size import Size
+from fpipe.meta.abstract import FileMeta
 from fpipe.utils.s3_reader import S3FileReader
 
-T = TypeVar('T')
 
-
-class MetaGetter(FileMeta[T]):
-    def __init__(self, getter, lock):
-        self.getter = getter
-        self.lock = lock
-
-    @property
-    def value(self) -> T:
-        if self.lock.locked():
-            raise FileInfoException("S3 object meta is not available until after object has been written")
-        return self.getter()
-
-
-# Futures
-class S3Size(MetaGetter[int]):
-    pass
-
-
-class S3Modified(MetaGetter[datetime.datetime]):
-    pass
-
-
-class S3Mime(MetaGetter[str]):
-    pass
-
-
-# From S3File
-class S3Version(FileMetaValue[str]):
-    pass
-
-
-class S3Key(FileMetaValue[str]):
-    pass
-
-
-class S3FileInfo:
-    def __init__(self, reader: S3FileReader ):
+class S3MetadataProducer:
+    def __init__(self, reader: S3FileReader):
         self.reader = reader
         self.__s3_obj = None
         self.bucket = reader.bucket
         self.path = reader.key
 
-    def _get_metadata(self, key: str):
+    def generate(self) -> Iterable[FileMeta]:
+        if self.reader.version:
+            yield Version(self.reader.version)
+
+        yield Path(self.path)
+        yield Size(future=self.__future('ContentLength', Size))
+        yield Modified(future=self.__future('LastModified', Modified))
+        yield Mime(future=self.__future('ContentType', Mime))
+
+    def __get_metadata(self, lock, key: str, value_class):
+        if lock.locked():
+            raise FileMetaException(value_class)
         self.__s3_obj = self.__s3_obj or self.reader.s3_client.get_object(
             Bucket=self.reader.bucket,
             Key=self.reader.key,
@@ -58,13 +37,8 @@ class S3FileInfo:
         if self.__s3_obj:
             return self.__s3_obj[key]
         else:
-            raise Exception("?")  # TODO: Improve
+            raise FileMetaException(value_class)  # TODO: improve
 
-    def meta_gen(self) -> Iterable[FileMeta]:
-        if self.reader.version:
-            yield S3Version(self.reader.version)
-        yield S3Key(self.path)
-
-        yield S3Size(lambda: self._get_metadata('ContentLength'), self.reader.meta_lock)
-        yield S3Modified(lambda: self._get_metadata('LastModified'), self.reader.meta_lock)
-        yield S3Mime(lambda: self._get_metadata('ContentType'), self.reader.meta_lock)
+    def __future(self, key_name, value_class: Type):
+        lock = self.reader.meta_lock
+        return lambda: self.__get_metadata(lock, key_name, value_class)

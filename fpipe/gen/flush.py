@@ -2,7 +2,7 @@ from fpipe.file.file import FileStream
 from fpipe.gen.callable import CallableGen
 
 
-class FlushGen(CallableGen):
+class Flush(CallableGen):
     """
     Generator that empties files from generators, then yields them.
     """

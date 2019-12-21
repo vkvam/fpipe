@@ -1,18 +1,18 @@
 from threading import Lock, Thread
 from typing import Union, Optional, Generator, Callable
 
-from fpipe.exceptions import FileException
+from fpipe.exceptions import FileException, FileMetaException
 from fpipe.file import FileStream, File
 from fpipe.file.s3 import S3File, S3PrefixFile, S3SeekableFileStream
 from fpipe.gen.callable import CallableGen, CallableResponse
-from fpipe.meta import Path
+from fpipe.meta import Path, Version
 from fpipe.utils.mime import guess_mime
 from fpipe.utils.s3 import list_objects
 from fpipe.utils.s3_reader import S3FileReader
 from fpipe.utils.s3_writer import S3FileWriter
 
 
-class S3Gen(CallableGen[FileStream]):
+class S3(CallableGen[FileStream]):
     f_type = Union[S3File, S3PrefixFile, FileStream]
 
     def __init__(self,
@@ -45,7 +45,11 @@ class S3Gen(CallableGen[FileStream]):
         client, resource = self.client, self.resource
 
         if isinstance(source, S3File):
-            bucket, key, version = source.bucket, source.key, source.version
+            bucket, key = source.bucket, source.meta(Path)
+            try:
+                version = source.meta(Version)
+            except FileMetaException:  # Version not provided to source
+                version = None
 
             with S3FileReader(client,
                               resource,

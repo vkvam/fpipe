@@ -8,7 +8,7 @@ from fpipe.meta.path import Path
 from fpipe.utils.bytesloop import BytesLoop
 
 
-class LocalGen(CallableGen[FileStream]):
+class Local(CallableGen[FileStream]):
 
     def __init__(self,
                  pass_through=False,

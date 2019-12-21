@@ -1,24 +1,19 @@
-from fpipe.exceptions import FileInfoException
-from fpipe.meta.abstract import FileMetaValue, FileMetaCalculator
+from fpipe.meta.abstract import FileMetaFuture, FileMetaCalculator, T
 
 
-class Size(FileMetaValue[int]):
-    pass
-
-
-class SizeCalculated(FileMetaCalculator[int]):
-    def __init__(self):
-        self.done = False
+class SizeCalculator(FileMetaCalculator):
+    def __init__(self, calculable: 'Size'):
+        super().__init__(calculable)
         self.v = 0
 
     def write(self, b: bytes):
         self.v += len(b)
-        if b == b'':
-            self.done = True
+        if not b:
+            self.calculable.set_value(self.v)
 
-    @property
-    def value(self) -> int:
-        if self.done:
-            return self.v
-        else:
-            raise FileInfoException(self)
+
+class Size(FileMetaFuture[int]):
+
+    @staticmethod
+    def get_calculator() -> FileMetaCalculator[T]:
+        return SizeCalculator(Size())

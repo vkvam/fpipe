@@ -6,7 +6,7 @@ from fpipe.meta.path import Path
 from fpipe.utils.ftp import FTPClient
 
 
-class FTPGen(CallableGen[FileStream]):
+class FTP(CallableGen[FileStream]):
 
     def executor(self, source: FTPFile):
         ftp_client = FTPClient(host=source.host,

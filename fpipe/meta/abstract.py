@@ -1,5 +1,7 @@
 from abc import abstractmethod
-from typing import TypeVar, Type, cast, Generic
+from typing import TypeVar, Type, cast, Generic, Optional, Callable
+
+from fpipe.exceptions import FileMetaException
 
 T = TypeVar('T')
 
@@ -35,13 +37,35 @@ class MetaMap:
         return cast(T, self.metas[t])
 
 
-class FileMetaCalculator(FileMeta[T]):
+class FileMetaCalculator(Generic[T]):
+    def __init__(self, calculable: 'FileMetaFuture[T]'):
+        self.calculable = calculable
 
     @abstractmethod
-    def write(self, b: bytes) -> bool:
-        """
-
-        :param b: bytes to use for calculations
-        :return: true when calculations are complete
-        """
+    def write(self, b: bytes):
         pass
+
+
+class FileMetaFuture(FileMeta[T]):
+
+    def __init__(self,
+                 value: Optional[T] = None,
+                 future: Optional[Callable[[None], T]] = None):
+        self.__v = value
+        self.__future = future
+
+    @staticmethod
+    def get_calculator() -> Optional[FileMetaCalculator[T]]:
+        return None
+
+    def set_value(self, v: T):
+        self.__v = v
+
+    @property
+    def value(self) -> T:
+        if self.__v:
+            return self.__v
+        elif self.__future:
+            return self.__future()
+        raise FileMetaException(self)
+

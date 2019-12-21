@@ -3,9 +3,9 @@ import os
 
 from unittest import TestCase
 
-from fpipe.gen import MetaGen, ProcessGen, FTPGen
+from fpipe.gen import Meta, Program, FTP
 from fpipe.file import FTPFile
-from fpipe.meta import MD5Calculated, Path
+from fpipe.meta import MD5, Path
 from test_utils.ftp_server import TestFTPServer
 
 
@@ -35,7 +35,7 @@ class TestFTP(TestCase):
             for path, size in files_in.items():
                 with open(path, 'wb') as f:
                     f.write(b'x' * size)
-            gen = FTPGen().chain(
+            gen = FTP().chain(
                 FTPFile(
                     path,
                     host='localhost',
@@ -47,26 +47,26 @@ class TestFTP(TestCase):
             )
 
             # Checksum of input
-            gen = MetaGen(MD5Calculated).chain(
+            gen = Meta(MD5).chain(
                 gen
             )
 
             # Encrypt and decrypt
-            gen = ProcessGen("gpg --batch --symmetric --passphrase 'X'").chain(
+            gen = Program("gpg --batch --symmetric --passphrase 'X'").chain(
                 gen
             )
 
             # # Checksum of encrypted
-            gen = MetaGen(MD5Calculated).chain(
+            gen = Meta(MD5).chain(
                 gen
             )
 
-            gen = ProcessGen("gpg --batch --decrypt --passphrase 'X'").chain(
+            gen = Program("gpg --batch --decrypt --passphrase 'X'").chain(
                 gen
             )
 
             # # Checksum of decrypted
-            gen = MetaGen(MD5Calculated).chain(
+            gen = Meta(MD5).chain(
                 gen
             )
 
@@ -83,11 +83,11 @@ class TestFTP(TestCase):
                     self.assertEqual(content_out, source_content)
 
                     # Source file
-                    self.assertEqual(file_out.parent.parent.parent.parent.meta(MD5Calculated).value, md5.hexdigest())
+                    self.assertEqual(file_out.parent.parent.parent.parent.meta(MD5).value, md5.hexdigest())
                     # Encrypted file
-                    self.assertNotEqual(file_out.parent.parent.meta(MD5Calculated).value, md5.hexdigest())
+                    self.assertNotEqual(file_out.parent.parent.meta(MD5).value, md5.hexdigest())
                     # Decrypted file
-                    self.assertEqual(file_out.meta(MD5Calculated).value, md5.hexdigest())
+                    self.assertEqual(file_out.meta(MD5).value, md5.hexdigest())
 
                     run_balance = True
                 self.assertTrue(run_balance)

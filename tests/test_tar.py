@@ -1,3 +1,4 @@
+import datetime
 import io
 import tarfile
 from unittest import TestCase
@@ -5,8 +6,8 @@ from unittest import TestCase
 from typing import Tuple
 
 from fpipe.file.file import FileStream
-from fpipe.gen import ProcessGen, TarGen
-from fpipe.meta import ModifiedTar, Path, Size
+from fpipe.gen import Program, Tar
+from fpipe.meta import Path, Size, Modified
 from test_utils.test_file import ReversibleTestFile
 
 FILE_NAME = "test.json"
@@ -45,11 +46,11 @@ class TestTar(TestCase):
         source_file_content = [(f.seek() or f.read(), p, s, t) for f, p, s, t in source_files]
 
         # Pass it through ProcessFileGenerator to ensure we are working with a non-seekable stream
-        proc = ProcessGen(cmd='cat /dev/stdin').chain(FileStream(f))
-        for f in TarGen().chain(proc):
+        proc = Program(command='cat /dev/stdin').chain(FileStream(f))
+        for f in Tar().chain(proc):
             source_content, source_path, source_size, source_time = source_file_content.pop(0)
             self.assertEqual(source_content, f.file.read())
             self.assertEqual(source_path, f.meta(Path).value)
             self.assertEqual(source_size, f.meta(Size).value)
-            self.assertEqual(source_time, f.meta(ModifiedTar).value)
+            self.assertEqual(datetime.datetime.fromtimestamp(source_time), f.meta(Modified).value)
         self.assertEqual(len(source_file_content), 0)

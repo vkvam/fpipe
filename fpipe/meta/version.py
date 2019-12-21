@@ -1,5 +1,5 @@
 from fpipe.meta.abstract import FileMetaValue
 
 
-class ModifiedTar(FileMetaValue[int]):
+class Version(FileMetaValue[str]):
     pass

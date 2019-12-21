@@ -4,8 +4,8 @@ import os
 from unittest import TestCase
 
 from fpipe.file import ByteFile, LocalFile
-from fpipe.gen import MetaGen, LocalGen
-from fpipe.meta import MD5Calculated, Path, SizeCalculated
+from fpipe.gen import Meta, Local
+from fpipe.meta import MD5, Path, Size
 from fpipe.workflow import WorkFlow
 
 
@@ -20,8 +20,8 @@ class TestMeta(TestCase):
         file_names = ('.x.test', '.y.test')
         try:
             workflow = WorkFlow(
-                LocalGen(pass_through=True),
-                MetaGen(SizeCalculated, MD5Calculated)
+                Local(pass_through=True),
+                Meta(Size, MD5)
             )
 
             count = 0
@@ -41,8 +41,8 @@ class TestMeta(TestCase):
         file_names = ('.x.test', '.y.test')
         try:
             workflow = WorkFlow(
-                LocalGen(),
-                MetaGen(SizeCalculated, MD5Calculated)
+                Local(),
+                Meta(Size, MD5)
             )
             count = 0
             for f in workflow.compose(ByteFile(b'x' * 10, Path(file_names[0])),
@@ -52,7 +52,7 @@ class TestMeta(TestCase):
                     count += 1
                     self.assertEqual(content, local_file.read())
 
-            workflow = WorkFlow(LocalGen())
+            workflow = WorkFlow(Local())
 
             for f in workflow.compose(LocalFile(file_names[0])):
                 self.assertEqual(len(f.file.read()), 10)

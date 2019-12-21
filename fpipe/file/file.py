@@ -1,5 +1,6 @@
 from typing import Optional, Type, IO, Iterable, Union
 
+from fpipe.exceptions import FileMetaException
 from fpipe.meta.abstract import FileMeta, MetaMap, T
 
 
@@ -31,7 +32,7 @@ class File:
                     obj = obj.parent
             except KeyError:
                 obj = obj.parent
-        raise KeyError(f"Not found {t}")
+        raise FileMetaException(t)
 
 
 class FileStream(File):

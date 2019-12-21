@@ -1,9 +1,9 @@
 from unittest import TestCase
 
 from fpipe.file import File
-from fpipe.meta import SizeCalculated, MD5Calculated
-from fpipe.gen import MetaGen, ProcessGen
-from fpipe.exceptions import FileInfoException
+from fpipe.meta import Size, MD5
+from fpipe.gen import Meta, Program
+from fpipe.exceptions import FileMetaException
 from test_utils.test_file import TestStream
 
 
@@ -12,7 +12,7 @@ class TestFileIO(TestCase):
         size = 2**20
         chunk = 2**14
         count = 0
-        for f in ProcessGen(f"head -c {size} /dev/random").chain(File()):
+        for f in Program(f"head -c {size} /dev/random").chain(File()):
             read = f.file.read
             while True:
                 b = read(chunk)
@@ -26,8 +26,8 @@ class TestFileIO(TestCase):
 
         signal = False
 
-        for file in MetaGen(SizeCalculated, MD5Calculated).chain(
-                ProcessGen(
+        for file in Meta(Size, MD5).chain(
+                Program(
                     "cat /dev/stdin"
                 ).chain(
                     TestStream(
@@ -38,16 +38,16 @@ class TestFileIO(TestCase):
                 )
         ):
 
-            with self.assertRaises(FileInfoException):
-                x = file.meta(SizeCalculated).value
+            with self.assertRaises(FileMetaException):
+                x = file.meta(Size).value
 
-            with self.assertRaises(FileInfoException):
-                x = file.meta(MD5Calculated).value
+            with self.assertRaises(FileMetaException):
+                x = file.meta(MD5).value
 
             while file.file.read(2 ** 20):
                 ...
 
-            self.assertEqual(file.meta(SizeCalculated).value, size)
-            self.assertNotEqual(file.meta(MD5Calculated).value, '')
+            self.assertEqual(file.meta(Size).value, size)
+            self.assertNotEqual(file.meta(MD5).value, '')
             signal = True
         self.assertTrue(signal)

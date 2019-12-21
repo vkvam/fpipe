@@ -3,14 +3,14 @@ from typing import Iterable, Type
 
 from fpipe.file.file import FileStream
 from fpipe.gen.abstract import FileGenerator
-from fpipe.meta.abstract import FileMetaCalculator
+from fpipe.meta.abstract import FileMetaFuture
 from fpipe.utils.bytesloop import BytesLoop
 
 
-class MetaGen(FileGenerator):
-    def __init__(self, *file_meta_calculator: Type[FileMetaCalculator]):
+class Meta(FileGenerator):
+    def __init__(self, *file_meta: Type[FileMetaFuture]):
         super().__init__()
-        self.file_meta_calculators = file_meta_calculator
+        self.file_meta = file_meta
         self.bufsize = 2 ** 14
 
     def __iter__(self) -> Iterable[FileStream]:
@@ -18,7 +18,7 @@ class MetaGen(FileGenerator):
             buf_size = self.bufsize
 
             with BytesLoop(self.bufsize) as byte_loop:
-                calculators = [f() for f in self.file_meta_calculators]
+                calculators = [f.get_calculator() for f in self.file_meta]
                 calc_calls = [f.write for f in calculators]
 
                 def __process():
@@ -36,5 +36,5 @@ class MetaGen(FileGenerator):
                 # Need to fix so that file read/write can be aborted if any of the threads fail.
                 proc_thread = threading.Thread(target=__process, name=f'{self.__class__.__name__}', daemon=True)
                 proc_thread.start()
-                yield FileStream(byte_loop, parent=source, meta=calculators)
+                yield FileStream(byte_loop, parent=source, meta=[c.calculable for c in calculators])
                 proc_thread.join()
