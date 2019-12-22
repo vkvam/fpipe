@@ -10,9 +10,11 @@ from typing import IO, Iterable, List
 
 import botocore
 from boto.file import Key
+from botocore import exceptions
 from mock import patch, Mock
 
-from fpipe.exceptions import SeekException, FileException, FileMetaException
+from fpipe.exceptions import SeekException, FileException, FileMetaException, \
+    S3WriteException
 from fpipe.gen import Meta, S3, Tar
 from fpipe.file import S3File, S3PrefixFile
 from fpipe.meta import Mime, Modified, Version, Path, Size
@@ -138,6 +140,28 @@ class TestS3(TestCase):
             worker(client,
                    Event(), q, Queue(), Queue(), bucket, key, mpu["UploadId"],
                    1)
+
+    @mock_s3
+    @mock_iam
+    @mock_config
+    @patch(
+        'fpipe.utils.s3_writer.S3FileWriter._S3FileWriter__finalize_multipart')
+    def test_s3_writer_worker_exception_checksum_2(self, mocked):
+        parsed_response = {
+            'Error': {'Code': '500', 'Message': 'Error Uploading'}}
+        e = exceptions.ClientError(parsed_response, 'UploadPartCopy')
+        mocked.side_effect = e
+
+        client, resource, bucket = self.__init_s3()
+        test_stream = TestStream(60, 'xyz', reversible=True)
+
+        # TODO: Should really raise S3WriteException
+        with self.assertRaises(FileException):
+            S3(client,
+               resource,
+               bucket=bucket,
+               seekable=True
+               ).chain(test_stream).flush()
 
     @mock_s3
     @mock_iam

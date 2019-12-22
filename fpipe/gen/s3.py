@@ -39,19 +39,24 @@ class S3(MethodGen[FileStream, SeekableFileStream]):
             mime: str,
             encoding: str,
     ):
-        with S3FileWriter(client, bucket, path.value, mime) as writer:
-            while True:
-                b = source.file.read(writer.buffer.chunk_size)
-                # self.stats.w(b)
-                writer.write(b)
-                if not b:
-                    break
-        if writer.mpu_res:
-            reader.version = writer.mpu_res.get("VersionId")
-        else:
-            raise FileException
-        # Release reader when we are done writing
-        read_lock.release()
+        try:
+            with S3FileWriter(client, bucket, path.value, mime) as writer:
+                while True:
+                    b = source.file.read(writer.buffer.chunk_size)
+                    # self.stats.w(b)
+                    writer.write(b)
+                    if not b:
+                        break
+            if writer.mpu_res:
+                reader.version = writer.mpu_res.get("VersionId")
+            else:
+                raise FileException
+            # TODO: Exception from thread should be thrown on main thread
+            # before pipe reaches reader and throws
+            # FileException("Could not locate S3 object....")
+        finally:
+            # Release reader when we are done writing, or writing failed
+            read_lock.release()
 
     def executor(
             self, source: File

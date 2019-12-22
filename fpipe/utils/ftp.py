@@ -25,9 +25,9 @@ class FTPClient(object):
         self.md5: Optional[str] = None
 
     def _get_session(self):
-        ftp = ftplib.FTP()
+        ftp = ftplib.FTP(user=self.user, passwd=self.passwd)
         ftp.connect(host=self.host, port=self.port, timeout=self.timeout)
-        ftp.login(user=self.user, passwd=self.passwd)
+        ftp.login()
         return ftp
 
     def write_to_file_threaded(self, path):
