@@ -39,8 +39,9 @@ WorkFlow(
 
 
 ### Installing
+Framework is currently tested with Python 3.6 and above, but may work with earlier versions as well.
 
-for S3 support you need boto3
+For AWS S3 support you will boto3
 
 ```bash
 brew install python3
@@ -112,10 +113,8 @@ for f in workflow.compose(sources).flush_iter():
     print(f'\n{"-"*46}\n')
     print("Original path:", f.meta(Path, 2).value)
     print("Original md5:", f.meta(MD5, 2).value, end='\n\n')
-
     print("Encrypted path:", f.meta(Path, 1).value)
     print("Encrypted md5:", f.meta(MD5, 1).value, end='\n\n')
-
     print("Decrypted path:", f.meta(Path).value)
     print("Decrypted md5:", f.meta(MD5).value)
 

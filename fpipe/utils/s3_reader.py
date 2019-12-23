@@ -52,6 +52,7 @@ class S3FileReader(BinaryIO):
         self.__seekable: bool = seekable
         self.obj_body = None
         self.locked = self.meta_lock or self.read_lock
+        self.__closed = False
 
         if self.meta_lock:
             self.meta_lock.acquire()
@@ -221,6 +222,7 @@ class S3FileReader(BinaryIO):
             self.obj_body.close()
 
         self.cache_chunks.clear()
+        self.__closed = True
 
     def fileno(self) -> int:
         raise NotImplementedError
@@ -251,6 +253,15 @@ class S3FileReader(BinaryIO):
         return False
 
     def write(self, s: AnyStr) -> int:
+        raise NotImplementedError
+
+    def closed(self):
+        return self.__closed
+
+    def mode(self):
+        raise NotImplementedError
+
+    def name(self) -> str:
         raise NotImplementedError
 
     def writelines(self, lines: Iterable[AnyStr]) -> None:
