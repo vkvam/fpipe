@@ -6,11 +6,13 @@ from typing import Optional, Type, Iterator, AnyStr, Iterable, List, BinaryIO
 class BytesLoop(BinaryIO):
     def __init__(self, buf_size: int = 2 ** 14, lock_wait: float = 0.00001):
         self.buffer = bytearray()
-        self.done = False
+
         self.lock = threading.Lock()
         self.buf_size: int = buf_size
         self.lock_wait: float = lock_wait
-        # self.stats = Stats(self.__class__.__name__)
+
+        self.done = False
+        self.__closed = False
 
     def __r(self, n=None) -> bytes:
         self.lock.acquire()
@@ -66,9 +68,10 @@ class BytesLoop(BinaryIO):
     def close(self) -> None:
         self.done = False
         self.buffer.clear()
+        self.__closed = True
 
     def fileno(self) -> int:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def flush(self) -> None:
         while self.read(self.buf_size):
@@ -84,31 +87,40 @@ class BytesLoop(BinaryIO):
         return True
 
     def readline(self, limit: int = ...) -> AnyStr:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def readlines(self, hint: int = ...) -> List[AnyStr]:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def seek(self, offset: int, whence: int = ...) -> int:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def seekable(self) -> bool:
         return False
 
     def tell(self) -> int:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def truncate(self, size: Optional[int] = ...) -> int:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def writelines(self, lines: Iterable[AnyStr]) -> None:
-        raise NotImplementedError()
+        raise NotImplementedError
+
+    def closed(self):
+        return self.__closed
+
+    def mode(self):
+        raise NotImplementedError
+
+    def name(self) -> str:
+        raise NotImplementedError
 
     def __next__(self) -> AnyStr:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def __iter__(self) -> Iterator[AnyStr]:
-        raise NotImplementedError()
+        raise NotImplementedError
 
     def __exit__(
             self,
