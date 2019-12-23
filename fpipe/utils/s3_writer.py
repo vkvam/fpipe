@@ -66,6 +66,7 @@ class S3FileWriter(BinaryIO, ThreadPoolExecutor):
         self.max_part_upload_retries = max_part_upload_retries
         self.queue_timeout = queue_timeout
         self.mpu_res = None
+        self.__closed = False
 
     def __enter__(self) -> "S3FileWriter":
         self.buffer.clear()
@@ -117,6 +118,7 @@ class S3FileWriter(BinaryIO, ThreadPoolExecutor):
             raise
         finally:
             self.shutdown()
+            self.__closed = True
 
     def abort(self):
         self.stop_workers_request.set()
@@ -203,6 +205,15 @@ class S3FileWriter(BinaryIO, ThreadPoolExecutor):
         return True
 
     def writelines(self, lines: Iterable[AnyStr]) -> None:
+        raise NotImplementedError
+
+    def closed(self):
+        return self.__closed
+
+    def mode(self):
+        raise NotImplementedError
+
+    def name(self) -> str:
         raise NotImplementedError
 
     def __next__(self) -> AnyStr:

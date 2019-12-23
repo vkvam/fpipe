@@ -9,43 +9,52 @@ from fpipe.meta.path import Path
 
 class TestFile(IO[bytes]):
     def close(self) -> None:
-        raise NotImplementedError
+        self.__closed = True
 
     def fileno(self):
-        raise NotImplementedError
+        pass
 
     def flush(self):
-        raise NotImplementedError
+        pass
 
     def isatty(self):
-        raise NotImplementedError
+        pass
 
     def readable(self):
-        raise NotImplementedError
+        pass
 
     def readline(self, limit: int = ...):
-        raise NotImplementedError
+        pass
 
     def readlines(self, hint: int = ...):
-        raise NotImplementedError
+        pass
 
     def seekable(self) -> bool:
         return True
 
     def tell(self):
-        raise NotImplementedError
+        pass
 
     def truncate(self, size: Optional[int] = ...):
-        raise NotImplementedError
+        pass
 
     def writable(self) -> bool:
-        raise NotImplementedError
+        pass
 
     def write(self, s: AnyStr) -> int:
-        raise NotImplementedError
+        pass
 
     def writelines(self, lines: Iterable[AnyStr]):
-        raise NotImplementedError
+        pass
+
+    def closed(self):
+        return self.__closed
+
+    def mode(self):
+        pass
+
+    def name(self) -> str:
+        return ''
 
     def __next__(self):
         raise NotImplementedError
@@ -56,13 +65,15 @@ class TestFile(IO[bytes]):
     def __enter__(self):
         raise NotImplementedError
 
-    def __exit__(self, t: Optional[Type[BaseException]], value: Optional[BaseException],
+    def __exit__(self, t: Optional[Type[BaseException]],
+                 value: Optional[BaseException],
                  traceback: Optional[TracebackType]):
         raise NotImplementedError
 
     def __init__(self, size):
         self.size = size
         self.offset = 0
+        self.__closed = False
 
     def seek(self, offset=0, whence=0):
         if whence == 0:
@@ -83,6 +94,21 @@ class TestFile(IO[bytes]):
 
 
 class ReversibleTestFile(TestFile):
+
+    def __next__(self):
+        pass
+
+    def __iter__(self):
+        pass
+
+    def __enter__(self):
+        pass
+
+    def __exit__(self, t: Optional[Type[BaseException]],
+                 value: Optional[BaseException],
+                 traceback: Optional[TracebackType]):
+        pass
+
     def __init__(self, size):
         super().__init__(size)
         self.letters = bytearray(string.ascii_letters, encoding='utf-8')
@@ -94,7 +120,8 @@ class ReversibleTestFile(TestFile):
             remaining = min(remaining, n)
         last_count = self.offset
         self.offset += remaining
-        return bytearray(self.letters[i % self.letter_count] for i in range(last_count, last_count + remaining))
+        return bytearray(self.letters[i % self.letter_count] for i in
+                         range(last_count, last_count + remaining))
 
 
 class TestStream(FileStream):
