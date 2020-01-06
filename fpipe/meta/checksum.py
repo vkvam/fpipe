@@ -1,4 +1,5 @@
 import hashlib
+from typing import Union
 
 from fpipe.meta.abstract import FileMetaFuture, FileMetaCalculator
 
@@ -8,9 +9,9 @@ class MD5Calculator(FileMetaCalculator[str]):
         super().__init__(calculable)
         self.__sig = hashlib.md5()
 
-    def write(self, b: bytes):
-        self.__sig.update(b)
-        if not b:
+    def write(self, s: Union[bytes, bytearray]):
+        self.__sig.update(s)
+        if not s:
             self.calculable.set_value(self.__sig.hexdigest())
 
 

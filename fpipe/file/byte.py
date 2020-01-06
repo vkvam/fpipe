@@ -8,7 +8,7 @@ from fpipe.meta.abstract import FileMeta
 class ByteFile(FileStream):
     def __init__(
         self,
-        b: bytes,
+        s: Union[bytes, bytearray],
         meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None,
     ):
-        super().__init__(io.BytesIO(b), meta=meta)
+        super().__init__(io.BytesIO(s), meta=meta)

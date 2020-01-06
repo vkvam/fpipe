@@ -128,8 +128,9 @@ class S3FileReader(BinaryIO):
             self.meta_lock = None
         self.locked = False
 
-    def read(self, count=None):
-        self.locked and self._unlock()
+    def read(self, n=-1):
+        if self.locked:
+            self._unlock()
 
         if not self.__seekable:
             self.obj_body = (
@@ -140,13 +141,13 @@ class S3FileReader(BinaryIO):
                     **({"VersionId": self.version} if self.version else {}),
                 )["Body"]
             )
-            return self.obj_body.read(count)
+            return self.obj_body.read(n)
 
         end = self._size
-        if count:
-            end = min(end, self.offset + count)
+        if n > 0:
+            end = min(end, self.offset + n)
 
-        data = None
+        data = b''
         while self.offset < end:
             if self.last_chunk is None:
                 self.last_chunk = self._get_chunk_for_offset()
@@ -176,7 +177,7 @@ class S3FileReader(BinaryIO):
 
             if self.offset < end:
                 self.last_chunk = self._append_cache_chunk()
-        return data or b""
+        return data
 
     def _get_chunk_for_offset(self):
         self.chunk_lookups += 1

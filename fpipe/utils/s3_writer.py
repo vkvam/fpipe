@@ -1,7 +1,8 @@
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
-from typing import AnyStr, List, Optional, Iterable, Iterator, Type, BinaryIO
+from typing import AnyStr, List, Optional, Iterable, Iterator, Type,\
+    BinaryIO, Union
 
 from botocore.client import BaseClient
 from botocore.exceptions import (
@@ -98,11 +99,12 @@ class S3FileWriter(BinaryIO, ThreadPoolExecutor):
 
         return self
 
-    def write(self, b: bytes):
-        self.buffer.add(b)
+    def write(self, s: Union[bytes, bytearray]) -> int:
+        self.buffer.add(s)
 
         if self.buffer.full():
             self.work_queue.put(self.buffer.get(), timeout=self.queue_timeout)
+        return len(s)
 
     def __exit__(
             self,
@@ -180,7 +182,7 @@ class S3FileWriter(BinaryIO, ThreadPoolExecutor):
     def isatty(self) -> bool:
         raise NotImplementedError
 
-    def read(self, n: int = ...) -> AnyStr:
+    def read(self, n: int = -1) -> AnyStr:
         raise NotImplementedError
 
     def readline(self, limit: int = ...) -> AnyStr:

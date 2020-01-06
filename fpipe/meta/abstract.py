@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import TypeVar, Type, cast, Generic, Optional, Callable
+from typing import TypeVar, Type, cast, Generic, Optional, Callable, Union
 
 from fpipe.exceptions import FileMetaException
 
@@ -41,7 +41,7 @@ class FileMetaCalculator(Generic[T]):
         self.calculable = calculable
 
     @abstractmethod
-    def write(self, b: bytes):
+    def write(self, s: Union[bytes, bytearray]):
         pass
 
 
