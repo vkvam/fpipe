@@ -8,13 +8,10 @@ from unittest import TestCase
 
 from typing import IO, Iterable, List
 
-import botocore
-from boto.file import Key
 from botocore import exceptions
-from mock import patch, Mock
+from mock import patch
 
-from fpipe.exceptions import SeekException, FileException, FileMetaException, \
-    S3WriteException
+from fpipe.exceptions import SeekException, FileException, FileMetaException
 from fpipe.gen import Meta, S3, Tar
 from fpipe.file import S3File, S3PrefixFile
 from fpipe.meta import Mime, Modified, Version, Path, Size
@@ -22,6 +19,7 @@ from fpipe.meta import Mime, Modified, Version, Path, Size
 from moto import mock_s3, mock_iam, mock_config
 
 from fpipe.meta.checksum import MD5
+from fpipe.utils.const import PIPE_BUFFER_SIZE
 from fpipe.utils.s3_writer_worker import worker, CorruptedMultipartError
 from fpipe.workflow import WorkFlow
 from test_utils.test_file import TestStream
@@ -69,10 +67,12 @@ class TestS3(TestCase):
         gen = Meta(Size, MD5).chain(gen)
         for f in gen:
             with self.assertRaises(FileMetaException):
-                # It is not possible to retrieve size from S3FileGenerator before object has been written
+                # It is not possible to retrieve size from S3FileGenerator
+                # before object has been written
                 x = f.parent.meta(Size).value
             with self.assertRaises(FileMetaException):
-                # It is not possible to retrieve size from FileMetaGenerator before the complete stream has been read
+                # It is not possible to retrieve size from FileMetaGenerator
+                # before the complete stream has been read
                 x = f.meta(MD5).value
             cnt = f.file.read()
             test_stream.file.seek(0)
@@ -316,8 +316,8 @@ class TestS3(TestCase):
             seekable=False
         ).chain(test_streams)
 
-        # Note: f.meta(S3Version) will raise exception since moto does not give version for multiparts
-        # versions = [[f.meta(Key), f.file.read() and f.meta(Version)] for f in gen]
+        # Note: f.meta(S3Version) will raise exception since moto
+        # does not give version for multiparts
         versions = [[f.file.read() and f.meta(Path).value, '?'] for f in gen]
 
         for idx, version in enumerate(
@@ -355,7 +355,7 @@ class TestS3(TestCase):
     @mock_iam
     @mock_config
     def test_readme_example(self):
-        file = ('abc', 2 ** 14)
+        file = ('abc', PIPE_BUFFER_SIZE)
         f = io.BytesIO()
 
         with tarfile.open(fileobj=f, mode='w') as tar:
@@ -374,8 +374,6 @@ class TestS3(TestCase):
             Key=tar_key
         )
 
-        # client = boto3.client('s3')
-        # resource = boto3.resource('s3')
         bucket = 'bucket'
         key = 'source.tar'
 

@@ -6,6 +6,7 @@ from unittest import TestCase
 from fpipe.gen import Meta, Program, FTP
 from fpipe.file import FTPFile
 from fpipe.meta import MD5, Path
+from fpipe.utils.const import PIPE_BUFFER_SIZE
 from test_utils.ftp_server import TestFTPServer
 
 
@@ -41,7 +42,7 @@ class TestFTP(TestCase):
                     host='localhost',
                     username='user',
                     password='12345',
-                    block_size=2 ** 14,
+                    block_size=PIPE_BUFFER_SIZE,
                     port=port
                 ) for path in files_in.keys()
             )
@@ -91,7 +92,8 @@ class TestFTP(TestCase):
 
                     run_balance = True
                 self.assertTrue(run_balance)
-
+        except Exception:
+            raise
         finally:
             for path in files_in.keys():
                 try:

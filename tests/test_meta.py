@@ -16,7 +16,7 @@ class TestMeta(TestCase):
         return sig.hexdigest()
 
     def test_chaining_test_stream(self):
-        stream_sizes = [2 ** i for i in range(18, 22)]
+        stream_sizes = [2 ** i for i in range(18, 23)]
 
         # Get expected results from FileMetaGenerators
         md5_of_files = [
@@ -38,8 +38,9 @@ class TestMeta(TestCase):
 
         # Get checksum for reversed files
         for f in Meta(MD5, Size).chain(gen):
-            f.file.read(1)
-            # Assert that we are not able to retrieve calculated data before files have been completely read
+            d = f.file.read(1)
+            # Assert that we are not able to retrieve calculated data before
+            # files have been completely read
             with self.assertRaises(FileMetaException):
                 x = f.meta(MD5).value
 

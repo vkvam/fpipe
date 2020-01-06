@@ -6,6 +6,7 @@ from fpipe.file.local import LocalFile
 from fpipe.gen.callable import MethodGen, CallableResponse
 from fpipe.meta.path import Path
 from fpipe.utils.bytesloop import BytesLoop
+from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
 def _process(
@@ -13,7 +14,7 @@ def _process(
 ):
     with open(path_name, "wb") as f2:
         while True:
-            b = source.file.read(2 ** 14)
+            b = source.file.read(PIPE_BUFFER_SIZE)
             if byte_loop:
                 byte_loop.write(b)
             f2.write(b)

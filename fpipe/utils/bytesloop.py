@@ -2,79 +2,85 @@ import threading
 from time import sleep
 from typing import Optional, Type, Iterator, AnyStr, Iterable, List, BinaryIO
 
+from fpipe.utils.const import EPSILON, PIPE_BUFFER_SIZE
+
 
 class BytesLoop(BinaryIO):
-    def __init__(self, buf_size: int = 2 ** 14, lock_wait: float = 0.00001):
-        self.buffer = bytearray()
-
-        self.lock = threading.Lock()
-        self.buf_size: int = buf_size
-        self.lock_wait: float = lock_wait
-
-        self.done = False
+    def __init__(self, buf_size: int = PIPE_BUFFER_SIZE, lock_wait: float = EPSILON):
+        self.__buffer = bytearray()
+        self.__buf_size: int = buf_size
+        self.__lock = threading.Lock()
+        self.__lock_wait: float = lock_wait
+        self.__done = False
         self.__closed = False
+        self.__bytes_written = 0
+        self.__bytes_read = 0
 
-    def __r(self, n=None) -> bytes:
-        self.lock.acquire()
-        chunk = self.buffer[:n]
-        while not chunk and not self.done:
-            self.lock.release()
-            sleep(self.lock_wait)  # Allow writes
-            self.lock.acquire()
-            chunk = self.buffer[:n]
-        del self.buffer[: len(chunk)]
-        self.lock.release()
+    def __read_chunk(self, n=None) -> bytes:
+        chunk = b''
+        while not self.__done or self.__bytes_written > self.__bytes_read:
 
+            with self.__lock:
+                chunk = self.__buffer[:n]
+                if chunk:
+                    chunk_len = len(chunk)
+                    del self.__buffer[:chunk_len]
+                    self.__bytes_read += chunk_len
+                    return chunk
+            sleep(self.__lock_wait)  # Allow writes
         return chunk
 
     def read(self, n=None) -> bytes:
-        chunk = self.__r(n)
-        if n is None:
-            ret = chunk
-            while chunk:
-                chunk = self.__r(n)
-                ret += chunk
-            return ret
-        return chunk
+        chunk = self.__read_chunk(n)
+        if n:
+            return chunk
+
+        ret = chunk
+        while chunk:
+            chunk = self.__read_chunk(n)
+            ret += chunk
+        return ret
 
     def write(self, data: bytes):
         data_len = len(data)
+
+        if not isinstance(data, bytearray):
+            data = bytearray(data)
+
+        self.__bytes_written += data_len
         if not data_len:
-            self.done = True  # EOF
+            self.__done = True  # EOF
             return
-
         while True:
-            self.lock.acquire()
-            remaining_buffer = self.buf_size - len(self.buffer)
-            chunk_length = min(remaining_buffer, data_len)
+            with self.__lock:
 
-            if chunk_length == data_len:
-                self.buffer += data
-                self.lock.release()
-                break
-            else:
-                if not isinstance(data, bytearray):
-                    data = bytearray(data)
-                chunk = data[:remaining_buffer]
-                del data[:chunk_length]
-                data_len -= chunk_length
-                self.buffer += chunk
-                self.lock.release()
-                sleep(self.lock_wait)
+                remaining_buffer = self.__buf_size - len(self.__buffer)
+                chunk_length = min(remaining_buffer, data_len)
+
+                if chunk_length == data_len:
+                    self.__buffer += data
+                    break
+                else:
+                    chunk = data[:remaining_buffer]
+                    del data[:chunk_length]
+                    data_len -= chunk_length
+                    self.__buffer += chunk
+            sleep(self.__lock_wait)  # Allow reads
 
     def __enter__(self) -> BinaryIO:
         return self
 
     def close(self) -> None:
-        self.done = False
-        self.buffer.clear()
+        self.__buffer.clear()
+        self.__bytes_read = 0
+        self.__bytes_written = 0
         self.__closed = True
 
     def fileno(self) -> int:
         raise NotImplementedError
 
     def flush(self) -> None:
-        while self.read(self.buf_size):
+        while self.read(self.__buf_size):
             pass
 
     def isatty(self) -> bool:

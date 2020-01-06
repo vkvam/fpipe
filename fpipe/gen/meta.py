@@ -5,13 +5,14 @@ from fpipe.file.file import FileStream
 from fpipe.gen.abstract import FileGenerator
 from fpipe.meta.abstract import FileMetaFuture
 from fpipe.utils.bytesloop import BytesLoop
+from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
 class Meta(FileGenerator):
     def __init__(self, *file_meta: Type[FileMetaFuture]):
         super().__init__()
         self.file_meta = file_meta
-        self.bufsize = 2 ** 14
+        self.bufsize = PIPE_BUFFER_SIZE
 
     def __iter__(self) -> Iterator[FileStream]:
         for source in self.files:

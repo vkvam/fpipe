@@ -9,7 +9,7 @@ from fpipe.workflow import WorkFlow
 from test_utils.test_file import ReversibleTestFile, TestStream
 
 
-class TestMeta(TestCase):
+class TestWorkflow(TestCase):
     @staticmethod
     def __checksum(data: bytes):
         sig = hashlib.md5()
@@ -25,7 +25,9 @@ class TestMeta(TestCase):
         ]
 
         md5_of_reversed_files = [
-            self.__checksum(bytes(reversed(ReversibleTestFile(s).read()))) for s in stream_sizes
+            self.__checksum(
+                bytes(reversed(ReversibleTestFile(s).read()))
+            ) for s in stream_sizes
         ]
 
         # Get checksum for initial files
@@ -35,9 +37,11 @@ class TestMeta(TestCase):
             Program("tr -d '\n'"),
             Meta(MD5, Size)
         )
-        for f in workflow.compose(TestStream(s, f'{s}', reversible=True) for s in stream_sizes):
+        for f in workflow.compose(
+                TestStream(s, f'{s}', reversible=True) for s in stream_sizes):
             f.file.read(1)
-            # Assert that we are not able to retrieve calculated data before files have been completely read
+            # Assert that we are not able to retrieve calculated data before
+            # files have been completely read
             with self.assertRaises(FileMetaException):
                 x = f.meta(MD5).value
 
@@ -46,7 +50,10 @@ class TestMeta(TestCase):
             f.file.read()
 
             # Assert that checksum created in two different ways are equal
-            self.assertEqual(f.parent.parent.meta(MD5).value, md5_of_files.pop(0))
+            self.assertEqual(
+                f.parent.parent.meta(MD5).value,
+                md5_of_files.pop(0)
+            )
             self.assertEqual(f.meta(MD5).value, md5_of_reversed_files.pop(0))
             self.assertEqual(f.meta(Path).value, str(f.meta(Size).value))
         # Assert that we've checked all files

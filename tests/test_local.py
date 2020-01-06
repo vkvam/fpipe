@@ -9,7 +9,7 @@ from fpipe.meta import MD5, Path, Size
 from fpipe.workflow import WorkFlow
 
 
-class TestMeta(TestCase):
+class TestLocal(TestCase):
     @staticmethod
     def __checksum(data: bytes):
         sig = hashlib.md5()

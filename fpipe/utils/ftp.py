@@ -1,6 +1,10 @@
 import ftplib
+from pyftpdlib import log as pyftpdlib_log
+
+import logging
 import socket
 import threading
+
 from typing import BinaryIO, Optional
 
 from fpipe.utils.bytesloop import BytesLoop
@@ -12,23 +16,40 @@ class FTPClient(object):
             host: str,
             username: str,
             password: str,
-            blocksize: Optional[int] = None,
+            block_size: Optional[int] = None,
             timeout: Optional[int] = None,
-            port: int = 21
+            port: int = 21,
+            ftplib_log_level: int = 0,
+            pyftpdlib_log_level: int = logging.WARNING
     ):
+        """
+        
+        :param host: dns name or ip address
+        :param port: ftp port, usually 21
+        :param username: ftp account username
+        :param password: ftp account password
+        :param block_size: size of each block requested from ftp server 
+        :param timeout: idle timeout of ftp server
+        :param ftplib_log_level: log level for ftplib library
+        :param pyftpdlib_log_level: log level for pyftpdlib 
+        """
         self.host: str = host
         self.port: int = port
         self.user: str = username
         self.passwd: str = password
         self.timeout: int = timeout or 60
-        self.blocksize: Optional[int] = blocksize
+        self.blocksize: Optional[int] = block_size
         self.md5: Optional[str] = None
 
+        self.ftp = ftplib.FTP(user=self.user, passwd=self.passwd)
+
+        self.ftp.set_debuglevel(ftplib_log_level)
+        pyftpdlib_log.config_logging(level=pyftpdlib_log_level)
+
     def _get_session(self):
-        ftp = ftplib.FTP(user=self.user, passwd=self.passwd)
-        ftp.connect(host=self.host, port=self.port, timeout=self.timeout)
-        ftp.login()
-        return ftp
+        self.ftp.connect(host=self.host, port=self.port, timeout=self.timeout)
+        self.ftp.login()
+        return self.ftp
 
     def write_to_file_threaded(self, path):
         with BytesLoop(self.blocksize) as bytes_io:
@@ -38,20 +59,15 @@ class FTPClient(object):
             return thread, bytes_io
 
     def write_to_file(self, path: str, bytes_io: BinaryIO):
-        ftp = self._get_session()
-        exception = None
-        kwargs = dict(cmd="RETR " + path,
-                      callback=bytes_io.write,
-                      blocksize=self.blocksize)
-        try:
+        with self._get_session() as ftp:
+            exception = None
+            kwargs = dict(cmd="RETR " + path,
+                          callback=bytes_io.write,
+                          blocksize=self.blocksize)
+
             ftp.retrbinary(
                 **{k: v for k, v in kwargs.items() if v is not None}
             )
-            # For some reason retrbinary does not send EOF
             bytes_io.write(b"")
-        except socket.timeout as e:
-            exception = e
-        finally:
-            ftp.close()
 
-        return self.md5, exception
+            return self.md5, exception

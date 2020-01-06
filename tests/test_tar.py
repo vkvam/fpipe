@@ -13,7 +13,9 @@ from test_utils.test_file import ReversibleTestFile
 FILE_NAME = "test.json"
 ENCODING = 'utf-8'
 TIME = 1574679361
-TAR_FILES = [(f'{"folder/" * level}{FILE_NAME}', 2 ** level) for level in range(2, 20)]
+TAR_FILES = [
+    (f'{"folder/" * level}{FILE_NAME}', 2 ** level) for level in range(2, 20)
+]
 
 
 def __get_text_file(content: str, encoding: str) -> Tuple[io.BytesIO, int]:
@@ -43,14 +45,22 @@ class TestTar(TestCase):
             source_files = list(create_nested_tar(tar))
         f.seek(0)
 
-        source_file_content = [(f.seek() or f.read(), p, s, t) for f, p, s, t in source_files]
+        source_file_content = [
+            (f.seek() or f.read(), p, s, t) for f, p, s, t in source_files
+        ]
 
-        # Pass it through ProcessFileGenerator to ensure we are working with a non-seekable stream
+        # Pass it through ProcessFileGenerator to ensure we are working
+        # with a non-seekable stream
         proc = Program(command='cat /dev/stdin').chain(FileStream(f))
         for f in Tar().chain(proc):
-            source_content, source_path, source_size, source_time = source_file_content.pop(0)
+            source_content, source_path, \
+            source_size, source_time = source_file_content.pop(0)
             self.assertEqual(source_content, f.file.read())
             self.assertEqual(source_path, f.meta(Path).value)
             self.assertEqual(source_size, f.meta(Size).value)
-            self.assertEqual(datetime.datetime.fromtimestamp(source_time), f.meta(Modified).value)
+            self.assertEqual(
+                datetime.datetime.fromtimestamp(
+                    source_time
+                ), f.meta(Modified).value
+            )
         self.assertEqual(len(source_file_content), 0)

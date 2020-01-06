@@ -7,19 +7,20 @@ from fpipe.file import File
 from fpipe.file.file import FileStream
 from fpipe.gen.callable import MethodGen, CallableResponse
 from fpipe.utils.bytesloop import BytesLoop
+from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
 class Program(MethodGen[FileStream, FileStream]):
     def __init__(
         self,
         command: Union[List[str], str],
-        buf_size=2 ** 14,
+        buffer_size=PIPE_BUFFER_SIZE,
         std_err=False,
         posix=True,
     ):
         """
         :param command: if a string is passed, shell
-        :param buf_size: buffer_size for the subprocess to use
+        :param buffer_size: buffer_size for subprocess stdin and stdout
         :param std_err: handle stderr (currently unsupported)
         :param posix=True, used by shlex to determine how to parse command
         """
@@ -30,7 +31,7 @@ class Program(MethodGen[FileStream, FileStream]):
             if isinstance(command, str)
             else command
         )
-        self.buf_size = buf_size
+        self.buf_size = buffer_size
         self.std_err = std_err
         if std_err:
             raise NotImplementedError(
@@ -65,12 +66,14 @@ class Program(MethodGen[FileStream, FileStream]):
         buf_size = self.buf_size
         run_std_in = isinstance(source, FileStream)
 
-        with BytesLoop(self.buf_size) as byte_loop:
+        with BytesLoop() as byte_loop:
+
             with subprocess.Popen(
                 self.command,
                 stdin=subprocess.PIPE if run_std_in else None,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE if self.std_err else subprocess.DEVNULL,
+                bufsize=buf_size
             ) as proc:
                 threads = [
                     threading.Thread(

@@ -1,13 +1,13 @@
 import string
 from types import TracebackType
-from typing import Iterable, IO, Optional, Type, AnyStr
+from typing import Iterable, Optional, Type, AnyStr, BinaryIO
 
 from fpipe.file.file import FileStream
 from fpipe.exceptions import SeekException
 from fpipe.meta.path import Path
 
 
-class TestFile(IO[bytes]):
+class TestFile(BinaryIO):
     def close(self) -> None:
         self.__closed = True
 

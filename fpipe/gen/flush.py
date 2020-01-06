@@ -1,5 +1,6 @@
 from fpipe.file.file import FileStream
 from fpipe.gen.callable import MethodGen
+from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
 class Flush(MethodGen):
@@ -9,6 +10,6 @@ class Flush(MethodGen):
 
     def executor(self, source: FileStream):
         read = source.file.read
-        size = 2 ** 14
+        size = PIPE_BUFFER_SIZE
         while read(size):
             pass

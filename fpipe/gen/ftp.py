@@ -13,7 +13,7 @@ class FTP(MethodGen[File, FileStream]):
                 host=source.host,
                 username=source.username,
                 password=source.password,
-                blocksize=source.block_size,
+                block_size=source.block_size,
                 port=source.port,
             )
             thread, bytes_io = ftp_client.write_to_file_threaded(
