@@ -3,6 +3,7 @@
 [![PyPI](https://img.shields.io/pypi/v/fpipe)](https://pypi.org/project/fpipe/)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/fpipe)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/b5f52ded1a7a40828bcce39f0982d38c)](https://www.codacy.com/manual/vkvam/fpipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=vkvam/fpipe&amp;utm_campaign=Badge_Grade)
 # fPipe
 
 fpipe is a simple framework for creating and running data manipulation pipelines.
