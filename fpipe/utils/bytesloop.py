@@ -6,7 +6,9 @@ from fpipe.utils.const import EPSILON, PIPE_BUFFER_SIZE
 
 
 class BytesLoop(BinaryIO):
-    def __init__(self, buf_size: int = PIPE_BUFFER_SIZE, lock_wait: float = EPSILON):
+    def __init__(self,
+                 buf_size: int = PIPE_BUFFER_SIZE,
+                 lock_wait: float = EPSILON):
         self.__buffer = bytearray()
         self.__buf_size: int = buf_size
         self.__lock = threading.Lock()

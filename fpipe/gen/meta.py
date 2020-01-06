@@ -15,7 +15,7 @@ class Meta(FileGenerator):
         self.bufsize = PIPE_BUFFER_SIZE
 
     def __iter__(self) -> Iterator[FileStream]:
-        for source in self.files:
+        for source in self.source_files:
             buf_size = self.bufsize
 
             with BytesLoop(self.bufsize) as byte_loop:

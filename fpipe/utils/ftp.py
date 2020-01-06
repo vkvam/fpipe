@@ -2,7 +2,6 @@ import ftplib
 from pyftpdlib import log as pyftpdlib_log
 
 import logging
-import socket
 import threading
 
 from typing import BinaryIO, Optional
@@ -23,15 +22,15 @@ class FTPClient(object):
             pyftpdlib_log_level: int = logging.WARNING
     ):
         """
-        
+
         :param host: dns name or ip address
         :param port: ftp port, usually 21
         :param username: ftp account username
         :param password: ftp account password
-        :param block_size: size of each block requested from ftp server 
+        :param block_size: size of each block requested from ftp server
         :param timeout: idle timeout of ftp server
         :param ftplib_log_level: log level for ftplib library
-        :param pyftpdlib_log_level: log level for pyftpdlib 
+        :param pyftpdlib_log_level: log level for pyftpdlib
         """
         self.host: str = host
         self.port: int = port

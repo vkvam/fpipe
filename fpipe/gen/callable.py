@@ -2,27 +2,27 @@ from abc import abstractmethod
 from threading import Thread
 from typing import Callable, Optional, Generator, Iterator, Generic, Union
 
-from fpipe.gen.abstract import T, T2, FileGenerator
+from fpipe.gen.abstract import SOURCE, TARGET, FileGenerator
 
 
-class CallableResponse(Generic[T, T2]):
-    def __init__(self, file: T, *thread: Thread):
-        self.file: T = file
+class CallableResponse(Generic[SOURCE, TARGET]):
+    def __init__(self, file: SOURCE, *thread: Thread):
+        self.file: SOURCE = file
         self.threads = thread
 
 
-class MethodGen(FileGenerator[T, T2]):
+class MethodGen(FileGenerator[SOURCE, TARGET]):
     def __init__(self):
         super().__init__()
 
     @abstractmethod
     def executor(
-        self, source: T
+        self, source: SOURCE
     ) -> Optional[Generator[CallableResponse, None, None]]:
         pass
 
-    def __iter__(self) -> Iterator[Union[T, T2]]:
-        for source in self.files:
+    def __iter__(self) -> Iterator[Union[SOURCE, TARGET]]:
+        for source in self.source_files:
             responses: Optional[
                 Generator[CallableResponse, None, None]
             ] = self.executor(source)
@@ -46,20 +46,24 @@ class MethodGen(FileGenerator[T, T2]):
                 yield source
 
 
-class Method(MethodGen[T, T2]):
+class Method(MethodGen[SOURCE, TARGET]):
     def __init__(
         self,
         executor: Optional[
-            Callable[[T], Optional[Generator[CallableResponse, None, None]]]
+            Callable[
+                [SOURCE], Optional[Generator[CallableResponse, None, None]]
+            ]
         ] = None,
     ):
         super().__init__()
         self.callable: Optional[
-            Callable[[T], Optional[Generator[CallableResponse, None, None]]]
+            Callable[
+                [SOURCE], Optional[Generator[CallableResponse, None, None]]
+            ]
         ] = executor
 
     def executor(
-        self, source: T
+        self, source: SOURCE
     ) -> Optional[Generator[CallableResponse, None, None]]:
         if self.callable:
             return self.callable(source)
