@@ -40,15 +40,13 @@ WorkFlow(
 
 
 ### Installing
-Framework is currently tested with Python 3.6 and above, but may work with earlier versions as well.
-
-For AWS S3 support you will boto3
+Framework is tested with Python 3.6 and above.
 
 ```bash
 brew install python3
 # apt, yum, apk...
 pip3 install fpipe
-# Optional
+# For aws s3 support you will need boto3
 pip3 install boto3
 ```
 
