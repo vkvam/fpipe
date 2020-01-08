@@ -1,14 +1,14 @@
 from fpipe.file.file import FileStream
-from fpipe.gen.callable import MethodGen
+from fpipe.gen.generator import FileGenerator
 from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
-class Flush(MethodGen):
+class Flush(FileGenerator):
     """
     Generator that empties files from generators, then yields them.
     """
 
-    def executor(self, source: FileStream):
+    def process(self, source: FileStream):
         read = source.file.read
         size = PIPE_BUFFER_SIZE
         while read(size):

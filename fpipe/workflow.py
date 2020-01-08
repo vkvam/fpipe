@@ -1,7 +1,7 @@
 from typing import Iterable, List, Union, Optional
 
 from fpipe.file import File
-from fpipe.gen.abstract import FileGenerator
+from fpipe.gen.generator import FileGenerator
 
 
 class WorkFlow:

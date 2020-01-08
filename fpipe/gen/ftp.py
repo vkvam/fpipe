@@ -1,13 +1,11 @@
-from fpipe.gen.callable import MethodGen
-from fpipe.file import FTPFile, File
-from fpipe.gen.abstract import FileStream
-from fpipe.gen.callable import CallableResponse
+from fpipe.file import FTPFile, File, FileStream
+from fpipe.gen.generator import FileGenerator, CallableResponse
 from fpipe.meta.path import Path
 from fpipe.utils.ftp import FTPClient
 
 
-class FTP(MethodGen[File, FileStream]):
-    def executor(self, source: File):
+class FTP(FileGenerator[File, FileStream]):
+    def process(self, source: File):
         if isinstance(source, FTPFile):
             ftp_client = FTPClient(
                 host=source.host,

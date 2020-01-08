@@ -3,14 +3,14 @@ from typing import Union, Optional, Generator, Callable
 from fpipe.exceptions import FileException, FileMetaException
 from fpipe.file import FileStream, File, SeekableFileStream
 from fpipe.file.s3 import S3File, S3PrefixFile, S3SeekableFileStream
-from fpipe.gen.callable import MethodGen, CallableResponse
+from fpipe.gen.generator import FileGenerator, CallableResponse
 from fpipe.meta import Path, Version
 from fpipe.utils.mime import guess_mime
 from fpipe.utils.s3_reader import S3FileReader
 from fpipe.utils.s3_writer import S3FileWriter
 
 
-class S3(MethodGen[FileStream, SeekableFileStream]):
+class S3(FileGenerator[FileStream, SeekableFileStream]):
     f_type = Union[S3File, S3PrefixFile, FileStream]
 
     def __init__(
@@ -58,7 +58,7 @@ class S3(MethodGen[FileStream, SeekableFileStream]):
             # Release reader when we are done writing, or writing failed
             read_lock.release()
 
-    def executor(
+    def process(
             self, source: File
     ) -> Optional[Generator[CallableResponse, None, None]]:
         client, resource = self.client, self.resource

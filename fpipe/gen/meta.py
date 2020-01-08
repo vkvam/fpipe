@@ -1,50 +1,54 @@
 import threading
-from typing import Type, Iterator
+from typing import Type, Optional, Generator, Tuple
 
 from fpipe.file.file import FileStream
-from fpipe.gen.abstract import FileGenerator
+from fpipe.gen.generator import SOURCE, FileGenerator, CallableResponse
 from fpipe.meta.abstract import FileMetaFuture
 from fpipe.utils.bytesloop import BytesLoop
 from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
-class Meta(FileGenerator):
+class Meta(FileGenerator[FileStream, FileStream]):
     def __init__(self, *file_meta: Type[FileMetaFuture]):
         super().__init__()
-        self.file_meta = file_meta
+        self.file_meta: Tuple[Type[FileMetaFuture], ...] = file_meta
         self.bufsize = PIPE_BUFFER_SIZE
 
-    def __iter__(self) -> Iterator[FileStream]:
-        for source in self.source_files:
-            buf_size = self.bufsize
+    def process(self, source: SOURCE) -> Optional[Generator[CallableResponse,
+                                                            None, None]]:
+        buf_size = self.bufsize
 
-            with BytesLoop(self.bufsize) as byte_loop:
-                calculators = [f.get_calculator() for f in self.file_meta if f]
-                calc_calls = [f.write for f in calculators if f]
+        with BytesLoop(self.bufsize) as byte_loop:
+            mata_calculators = [
+                f.get_calculator() for f in self.file_meta
+            ]
 
-                def __process():
+            meta_calculators_write = [
+                f.write for f in mata_calculators if f
+            ]
 
-                    while True:
-                        b = source.file.read(buf_size)
-                        for c in calc_calls:
-                            c(b)
-                        byte_loop.write(b)
-                        if not b:
-                            break
+            def write_to_meta_calculators():
+                while True:
+                    s = source.file.read(buf_size)
+                    for write in meta_calculators_write:
+                        write(s)
+                    byte_loop.write(s)
+                    if not s:
+                        break
 
-                # TODO: Pass all threads to the end, and start/join them
-                # all in another thread that tries to join all threads in
-                # sequence. Need to fix so that file read/write can be aborted
-                # if any of the threads fail.
-                proc_thread = threading.Thread(
-                    target=__process,
-                    name=f"{self.__class__.__name__}",
-                    daemon=True,
-                )
-                proc_thread.start()
-                yield FileStream(
+            proc_thread = threading.Thread(
+                target=write_to_meta_calculators,
+                name=f"{self.__class__.__name__}",
+                daemon=True,
+            )
+
+            yield CallableResponse(
+                FileStream(
                     byte_loop,
                     parent=source,
-                    meta=[c.calculable for c in calculators if c],
-                )
-                proc_thread.join()
+                    meta=(
+                        c.calculable for c in mata_calculators if c
+                    ),
+                ),
+                proc_thread
+            )

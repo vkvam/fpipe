@@ -3,14 +3,14 @@ import tarfile
 from typing import cast, BinaryIO
 
 from fpipe.file.file import FileStream
-from fpipe.gen.callable import MethodGen, CallableResponse
+from fpipe.gen.generator import FileGenerator, CallableResponse
 from fpipe.meta import Modified
 from fpipe.meta.path import Path
 from fpipe.meta.size import Size
 
 
-class Tar(MethodGen[FileStream, FileStream]):
-    def executor(self, source: FileStream):
+class Tar(FileGenerator[FileStream, FileStream]):
+    def process(self, source: FileStream):
         with tarfile.open(
             fileobj=source.file, mode="r|*"
         ) as tar_content_stream:

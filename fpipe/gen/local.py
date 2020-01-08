@@ -3,7 +3,7 @@ from typing import Callable, Optional
 
 from fpipe.file.file import File, FileStream, SeekableFileStream
 from fpipe.file.local import LocalFile
-from fpipe.gen.callable import MethodGen, CallableResponse
+from fpipe.gen.generator import FileGenerator, CallableResponse
 from fpipe.meta.path import Path
 from fpipe.utils.bytesloop import BytesLoop
 from fpipe.utils.const import PIPE_BUFFER_SIZE
@@ -22,7 +22,7 @@ def _process(
                 break
 
 
-class Local(MethodGen[FileStream, FileStream]):
+class Local(FileGenerator[FileStream, FileStream]):
     def __init__(
         self,
         pass_through=False,
@@ -38,7 +38,7 @@ class Local(MethodGen[FileStream, FileStream]):
         self.pass_through = pass_through
         self.pathname_resolver = pathname_resolver
 
-    def executor(self, source: File):
+    def process(self, source: File):
         path_name = (
             self.pathname_resolver(source)
             if self.pathname_resolver

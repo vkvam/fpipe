@@ -5,12 +5,12 @@ from typing import Optional, Generator, Union, List
 
 from fpipe.file import File
 from fpipe.file.file import FileStream
-from fpipe.gen.callable import MethodGen, CallableResponse
+from fpipe.gen.generator import FileGenerator, CallableResponse
 from fpipe.utils.bytesloop import BytesLoop
 from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
-class Program(MethodGen[FileStream, FileStream]):
+class Program(FileGenerator[FileStream, FileStream]):
     def __init__(
         self,
         command: Union[List[str], str],
@@ -60,7 +60,7 @@ class Program(MethodGen[FileStream, FileStream]):
                 proc.stdout.close()  # EOF
                 break
 
-    def executor(
+    def process(
         self, source: File
     ) -> Optional[Generator[CallableResponse, None, None]]:
         buf_size = self.buf_size
