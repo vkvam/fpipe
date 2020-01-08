@@ -3,7 +3,7 @@ from typing import Callable, Optional
 
 from fpipe.file.file import File, FileStream, SeekableFileStream
 from fpipe.file.local import LocalFile
-from fpipe.gen.generator import FileGenerator, CallableResponse
+from fpipe.gen.generator import FileGenerator, FileGeneratorResponse
 from fpipe.meta.path import Path
 from fpipe.utils.bytesloop import BytesLoop
 from fpipe.utils.const import PIPE_BUFFER_SIZE
@@ -48,7 +48,7 @@ class Local(FileGenerator[FileStream, FileStream]):
 
         if isinstance(source, LocalFile):
             with open(source.meta(Path).value, "rb") as f:
-                yield CallableResponse(
+                yield FileGeneratorResponse(
                     SeekableFileStream(f, parent=source, meta=path_meta)
                 )
         elif isinstance(source, FileStream):
@@ -60,13 +60,13 @@ class Local(FileGenerator[FileStream, FileStream]):
                         name=f"{self.__class__.__name__}",
                         daemon=True,
                     )
-                    yield CallableResponse(
+                    yield FileGeneratorResponse(
                         FileStream(byte_loop, parent=source, meta=path_meta),
                         proc_thread,
                     )
             else:
                 _process(source, path_name)
                 with open(source.meta(Path).value, "rb") as f:
-                    yield CallableResponse(
+                    yield FileGeneratorResponse(
                         SeekableFileStream(f, parent=source, meta=path_meta)
                     )

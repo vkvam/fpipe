@@ -3,7 +3,7 @@ import tarfile
 from typing import cast, BinaryIO
 
 from fpipe.file.file import FileStream
-from fpipe.gen.generator import FileGenerator, CallableResponse
+from fpipe.gen.generator import FileGenerator, FileGeneratorResponse
 from fpipe.meta import Modified
 from fpipe.meta.path import Path
 from fpipe.meta.size import Size
@@ -18,7 +18,7 @@ class Tar(FileGenerator[FileStream, FileStream]):
                 tar_stream = tar_content_stream.extractfile(tar_info)
 
                 if tar_stream:
-                    yield CallableResponse(
+                    yield FileGeneratorResponse(
                         FileStream(
                             cast(BinaryIO, tar_stream),
                             meta=(

@@ -1,5 +1,5 @@
 from fpipe.file import FTPFile, File, FileStream
-from fpipe.gen.generator import FileGenerator, CallableResponse
+from fpipe.gen.generator import FileGenerator, FileGeneratorResponse
 from fpipe.meta.path import Path
 from fpipe.utils.ftp import FTPClient
 
@@ -17,6 +17,9 @@ class FTP(FileGenerator[File, FileStream]):
             thread, bytes_io = ftp_client.write_to_file_threaded(
                 source.meta(Path).value
             )
-            yield CallableResponse(FileStream(bytes_io, parent=source), thread)
+            yield FileGeneratorResponse(
+                FileStream(bytes_io, parent=source),
+                thread
+            )
         else:
             raise NotImplementedError

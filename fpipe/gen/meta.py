@@ -2,7 +2,7 @@ import threading
 from typing import Type, Optional, Generator, Tuple
 
 from fpipe.file.file import FileStream
-from fpipe.gen.generator import SOURCE, FileGenerator, CallableResponse
+from fpipe.gen.generator import SOURCE, FileGenerator, FileGeneratorResponse
 from fpipe.meta.abstract import FileMetaFuture
 from fpipe.utils.bytesloop import BytesLoop
 from fpipe.utils.const import PIPE_BUFFER_SIZE
@@ -14,8 +14,13 @@ class Meta(FileGenerator[FileStream, FileStream]):
         self.file_meta: Tuple[Type[FileMetaFuture], ...] = file_meta
         self.bufsize = PIPE_BUFFER_SIZE
 
-    def process(self, source: SOURCE) -> Optional[Generator[CallableResponse,
-                                                            None, None]]:
+    def process(self, source: SOURCE) -> Optional[
+        Generator[
+            FileGeneratorResponse,
+            None,
+            None
+        ]
+    ]:
         buf_size = self.bufsize
 
         with BytesLoop(self.bufsize) as byte_loop:
@@ -42,7 +47,7 @@ class Meta(FileGenerator[FileStream, FileStream]):
                 daemon=True,
             )
 
-            yield CallableResponse(
+            yield FileGeneratorResponse(
                 FileStream(
                     byte_loop,
                     parent=source,

@@ -5,7 +5,7 @@ from typing import Optional, Generator, Union, List
 
 from fpipe.file import File
 from fpipe.file.file import FileStream
-from fpipe.gen.generator import FileGenerator, CallableResponse
+from fpipe.gen.generator import FileGenerator, FileGeneratorResponse
 from fpipe.utils.bytesloop import BytesLoop
 from fpipe.utils.const import PIPE_BUFFER_SIZE
 
@@ -62,7 +62,7 @@ class Program(FileGenerator[FileStream, FileStream]):
 
     def process(
         self, source: File
-    ) -> Optional[Generator[CallableResponse, None, None]]:
+    ) -> Optional[Generator[FileGeneratorResponse, None, None]]:
         buf_size = self.buf_size
         run_std_in = isinstance(source, FileStream)
 
@@ -92,6 +92,6 @@ class Program(FileGenerator[FileStream, FileStream]):
                             daemon=True,
                         )
                     )
-                yield CallableResponse(
+                yield FileGeneratorResponse(
                     FileStream(byte_loop, parent=source), *threads
                 )

@@ -3,7 +3,7 @@ from typing import Union, Optional, Generator, Callable
 from fpipe.exceptions import FileException, FileMetaException
 from fpipe.file import FileStream, File, SeekableFileStream
 from fpipe.file.s3 import S3File, S3PrefixFile, S3SeekableFileStream
-from fpipe.gen.generator import FileGenerator, CallableResponse
+from fpipe.gen.generator import FileGenerator, FileGeneratorResponse
 from fpipe.meta import Path, Version
 from fpipe.utils.mime import guess_mime
 from fpipe.utils.s3_reader import S3FileReader
@@ -60,7 +60,7 @@ class S3(FileGenerator[FileStream, SeekableFileStream]):
 
     def process(
             self, source: File
-    ) -> Optional[Generator[CallableResponse, None, None]]:
+    ) -> Optional[Generator[FileGeneratorResponse, None, None]]:
         client, resource = self.client, self.resource
 
         if isinstance(source, S3File):
@@ -78,7 +78,7 @@ class S3(FileGenerator[FileStream, SeekableFileStream]):
                     version=version.value if version else None,
                     seekable=self.seekable,
             ) as reader:
-                yield CallableResponse(
+                yield FileGeneratorResponse(
                     S3SeekableFileStream(reader, parent=source)
                 )
         elif isinstance(source, S3PrefixFile):
@@ -88,7 +88,7 @@ class S3(FileGenerator[FileStream, SeekableFileStream]):
                         client, resource, bucket, o["Key"],
                         seekable=self.seekable
                 ) as reader:
-                    yield CallableResponse(
+                    yield FileGeneratorResponse(
                         S3SeekableFileStream(reader, parent=source)
                     )
         elif isinstance(source, FileStream):
@@ -124,7 +124,7 @@ class S3(FileGenerator[FileStream, SeekableFileStream]):
                     mime,
                     encoding,
                 )
-                yield CallableResponse(
+                yield FileGeneratorResponse(
                     S3SeekableFileStream(reader, parent=source),
                     Thread(
                         target=self.write_to_s3,

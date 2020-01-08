@@ -8,7 +8,7 @@ SOURCE = TypeVar("SOURCE", File, FileStream, SeekableFileStream)
 TARGET = TypeVar("TARGET", File, FileStream, SeekableFileStream)
 
 
-class CallableResponse(Generic[SOURCE, TARGET]):
+class FileGeneratorResponse(Generic[SOURCE, TARGET]):
     def __init__(self, file: SOURCE, *thread: Thread):
         self.file: SOURCE = file
         self.threads = thread
@@ -51,7 +51,7 @@ class FileGenerator(Generic[SOURCE, TARGET]):
     def __iter__(self) -> Iterator[Union[SOURCE, TARGET]]:
         for source in self.source_files:
             responses: Optional[
-                Generator[CallableResponse, None, None]
+                Generator[FileGeneratorResponse, None, None]
             ] = self.process(source)
             if responses:
                 for resp in responses:
@@ -75,7 +75,7 @@ class FileGenerator(Generic[SOURCE, TARGET]):
     @abstractmethod
     def process(
             self, source: SOURCE
-    ) -> Optional[Generator[CallableResponse, None, None]]:
+    ) -> Optional[Generator[FileGeneratorResponse, None, None]]:
         pass
 
 
@@ -88,20 +88,24 @@ class Method(FileGenerator[SOURCE, TARGET]):
             self,
             executor: Optional[
                 Callable[
-                    [SOURCE], Optional[Generator[CallableResponse, None, None]]
+                    [SOURCE], Optional[
+                        Generator[FileGeneratorResponse, None, None]
+                    ]
                 ]
             ] = None,
     ):
         super().__init__()
         self.callable: Optional[
             Callable[
-                [SOURCE], Optional[Generator[CallableResponse, None, None]]
+                [SOURCE], Optional[
+                    Generator[FileGeneratorResponse, None, None]
+                ]
             ]
         ] = executor
 
     def process(
             self, source: SOURCE
-    ) -> Optional[Generator[CallableResponse, None, None]]:
+    ) -> Optional[Generator[FileGeneratorResponse, None, None]]:
         if self.callable:
             return self.callable(source)
         return None
