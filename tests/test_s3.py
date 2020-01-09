@@ -13,7 +13,7 @@ from mock import patch
 
 from fpipe.exceptions import SeekException, FileException, FileMetaException
 from fpipe.gen import Meta, S3, Tar
-from fpipe.file import S3File, S3PrefixFile
+from fpipe.file import S3File, S3PrefixFile, ByteFile
 from fpipe.meta import Mime, Modified, Version, Path, Size
 
 from moto import mock_s3, mock_iam, mock_config
@@ -287,6 +287,23 @@ class TestS3(TestCase):
         with self.assertRaises(FileException):
             for f in S3(client, resource).chain(S3File(bucket, 'x')):
                 f.file.read(1)
+
+    @mock_s3
+    @mock_iam
+    @mock_config
+    def test_seek(self):
+        client, resource, bucket = self.__init_s3()
+        key = 'key'
+        picked_nr = 3
+        been_there = False
+        for f in S3(client, resource, bucket=bucket, seekable=True).chain(
+                ByteFile(b'0123456789', meta=Path(key))):
+            file = f.file
+            file.seek(picked_nr)
+            self.assertEqual(file.tell(), picked_nr)
+            self.assertEqual(int(file.read(1)), picked_nr)
+            been_there = True
+        self.assertTrue(been_there)
 
     @mock_s3
     @mock_iam
