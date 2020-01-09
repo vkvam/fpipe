@@ -297,12 +297,15 @@ class TestS3(TestCase):
         picked_nr = 3
         been_there = False
         for f in S3(client, resource, bucket=bucket, seekable=True).chain(
-                ByteFile(b'0123456789', meta=Path(key))):
+                ByteFile(b'0123456789' * (10 ** 7),
+                         meta=Path(key))).flush_iter():
             file = f.file
-            file.seek(picked_nr)
-            self.assertEqual(file.tell(), picked_nr)
-            self.assertEqual(int(file.read(1)), picked_nr)
-            been_there = True
+            if file.seekable() and not file.writable() and not file.closed:
+                for start in (0, 10**6, 10**5+100, 10**2+100):
+                    file.seek(start + picked_nr)
+                    self.assertEqual(file.tell(), start + picked_nr)
+                    self.assertEqual(int(file.read(1)), picked_nr)
+                    been_there = True
         self.assertTrue(been_there)
 
     @mock_s3

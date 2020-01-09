@@ -256,7 +256,8 @@ class S3FileReader(BinaryIO):
     def write(self, s: AnyStr) -> int:
         raise NotImplementedError
 
-    def closed(self):
+    @property
+    def closed(self) -> bool:
         return self.__closed
 
     def mode(self):

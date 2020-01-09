@@ -117,6 +117,7 @@ class BytesLoop(BinaryIO):
     def writelines(self, lines: Iterable[AnyStr]) -> None:
         raise NotImplementedError
 
+    @property
     def closed(self):
         return self.__closed
 
