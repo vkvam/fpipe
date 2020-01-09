@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 with open('README.md') as readme:
     long_description = readme.read()
 
-version = '0.0.21'
+version = '0.0.22'
 
 setup(
     name='fpipe',

@@ -1,36 +1,40 @@
-import threading
-from time import sleep
+from threading import Event
 from typing import Optional, Type, Iterator, AnyStr, Iterable, List, \
     BinaryIO, Union
 
-from fpipe.utils.const import EPSILON, PIPE_BUFFER_SIZE
+from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
 class BytesLoop(BinaryIO):
     def __init__(self,
-                 buf_size: int = PIPE_BUFFER_SIZE,
-                 lock_wait: float = EPSILON):
+                 buf_size: int = PIPE_BUFFER_SIZE):
         self.__buffer = bytearray()
         self.__buf_size: int = buf_size
-        self.__lock = threading.Lock()
-        self.__lock_wait: float = lock_wait
         self.__done = False
         self.__closed = False
         self.__bytes_written = 0
         self.__bytes_read = 0
 
+        self.read_ready = Event()
+        self.write_ready = Event()
+        self.write_ready.set()
+
     def __read_chunk(self, n=-1) -> bytes:
         chunk = b''
         while not self.__done or self.__bytes_written > self.__bytes_read:
 
-            with self.__lock:
-                chunk = self.__buffer[:n] if n > 0 else self.__buffer[:]
+            self.read_ready.wait()
+
+            chunk = self.__buffer[:n] if n > 0 else self.__buffer[:]
+            try:
                 if chunk:
                     chunk_len = len(chunk)
                     del self.__buffer[:chunk_len]
                     self.__bytes_read += chunk_len
                     return chunk
-            sleep(self.__lock_wait)  # Allow writes
+            finally:
+                self.read_ready.clear()
+                self.write_ready.set()
         return chunk
 
     def read(self, n=-1) -> bytes:
@@ -53,22 +57,27 @@ class BytesLoop(BinaryIO):
         self.__bytes_written += data_len
         if not data_len:
             self.__done = True  # EOF
+            self.write_ready.clear()
+            self.read_ready.set()
             return 0
+
         while True:
-            with self.__lock:
+            self.write_ready.wait()
 
-                remaining_buffer = self.__buf_size - len(self.__buffer)
-                chunk_length = min(remaining_buffer, data_len)
+            remaining_buffer = self.__buf_size - len(self.__buffer)
+            chunk_length = min(remaining_buffer, data_len)
 
-                if chunk_length == data_len:
-                    self.__buffer += s
-                    break
-                else:
-                    chunk = s[:remaining_buffer]
-                    del s[:chunk_length]
-                    data_len -= chunk_length
-                    self.__buffer += chunk
-            sleep(self.__lock_wait)  # Allow reads
+            if chunk_length == data_len:
+                self.__buffer += s
+                break
+            else:
+                chunk = s[:remaining_buffer]
+                del s[:chunk_length]
+                data_len -= chunk_length
+                self.__buffer += chunk
+
+            self.write_ready.clear()
+            self.read_ready.set()
         return data_len
 
     def __enter__(self) -> BinaryIO:
