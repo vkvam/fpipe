@@ -11,7 +11,7 @@ from botocore.exceptions import (
 )
 
 from fpipe.exceptions import S3WriteException
-from fpipe.utils.part_buffer import Buffer
+from fpipe.utils.multipart_buffer import MultipartBuffer
 from fpipe.utils.s3_writer_worker import S3FileProgress, worker
 
 
@@ -56,7 +56,7 @@ class S3FileWriter(BinaryIO, ThreadPoolExecutor):
         self.bucket = bucket
         self.key = key
         self.mime = mime
-        self.buffer = Buffer(block_size)
+        self.buffer = MultipartBuffer(block_size)
         self.full_control = full_control
         self.progress_queue = progress_queue if progress_queue else Queue()
 

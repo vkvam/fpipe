@@ -1,7 +1,7 @@
-from typing import Tuple
+from typing import Tuple, Union
 
 
-class Buffer(object):
+class MultipartBuffer(object):
     def __init__(self, chunk_size: int, str_encoding: str = "utf-8"):
         self.buffer: bytearray = bytearray()
         self.part_number: int = 1
@@ -9,15 +9,9 @@ class Buffer(object):
         self.count: int = 0
         self.str_encoding = str_encoding
 
-    def add(self, data):
-        data_count = len(data)
-        if isinstance(data, bytes) or isinstance(data, bytearray):
-            self.buffer += data
-        elif isinstance(data, str):
-            self.buffer += data.encode(self.str_encoding)
-        else:
-            raise TypeError(f"{type(data)} can not be stored in S3 object")
-        self.count += data_count
+    def add(self, s: Union[bytes, bytearray]):
+        self.buffer += s
+        self.count += len(s)
 
     def empty(self) -> bool:
         return self.count == 0
