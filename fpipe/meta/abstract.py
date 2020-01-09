@@ -15,7 +15,7 @@ class FileMetaCalculator(Generic[T]):
 
     @abstractmethod
     def write(self, s: Union[bytes, bytearray]):
-        pass
+        raise NotImplementedError
 
 
 class FileMeta(Generic[T]):

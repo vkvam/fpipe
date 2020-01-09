@@ -23,7 +23,7 @@ def _process(
                 break
 
 
-class Local(FileGenerator[FileStream, FileStream]):
+class Local(FileGenerator[File, FileStream]):
     def __init__(
             self,
             pass_through=False,
@@ -39,12 +39,11 @@ class Local(FileGenerator[FileStream, FileStream]):
         super().__init__(process_meta)
         self.pass_through = pass_through
 
-    def process(self,
-                source: File,
-                process_meta_container: File):
+    def process(self, source: File, process_meta: File):
+
         path = File.meta_prioritized(
             Path,
-            process_meta_container,
+            process_meta,
             source
         )
 

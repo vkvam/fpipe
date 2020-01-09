@@ -75,19 +75,19 @@ class S3(FileGenerator[File, FileStream]):
     def process(
             self,
             source: File,
-            generated_meta_container: File
+            process_meta: File
     ) -> Optional[Generator[FileGeneratorResponse, None, None]]:
         client, resource = self.client, self.resource
 
         bucket = File.meta_prioritized(
             Bucket,
-            generated_meta_container,
+            process_meta,
             source
         ).value
         try:
             key = File.meta_prioritized(
                 Path,
-                generated_meta_container,
+                process_meta,
                 source
             ).value
             prefix = None
@@ -96,7 +96,7 @@ class S3(FileGenerator[File, FileStream]):
                 key = None
                 prefix = File.meta_prioritized(
                     Prefix,
-                    generated_meta_container,
+                    process_meta,
                     source).value
             except FileMetaException as e2:
                 raise e2 from e
@@ -105,7 +105,7 @@ class S3(FileGenerator[File, FileStream]):
             if isinstance(source, FileStream):
                 bucket = File.meta_prioritized(
                     Bucket,
-                    generated_meta_container,
+                    process_meta,
                     source
                 ).value
 
@@ -144,7 +144,7 @@ class S3(FileGenerator[File, FileStream]):
                 try:
                     version = File.meta_prioritized(
                         Version,
-                        generated_meta_container,
+                        process_meta,
                         source
                     )
                 except FileMetaException:  # Version not provided to source

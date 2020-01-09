@@ -100,8 +100,6 @@ class FileGenerator(Generic[SOURCE, TARGET]):
                         if resp.threads:
                             for t in resp.threads:
                                 t.join()
-                    else:
-                        yield source
             else:
                 yield source
 
@@ -109,9 +107,9 @@ class FileGenerator(Generic[SOURCE, TARGET]):
     def process(
             self,
             source: SOURCE,
-            generated_meta_container: File
+            process_meta: File
     ) -> Optional[Generator[FileGeneratorResponse, None, None]]:
-        pass
+        raise NotImplementedError
 
 
 class Method(FileGenerator[SOURCE, TARGET]):
@@ -122,28 +120,23 @@ class Method(FileGenerator[SOURCE, TARGET]):
 
     def __init__(
             self,
-            executor: Optional[
-                Callable[
-                    [SOURCE], Optional[
-                        Generator[FileGeneratorResponse, None, None]
-                    ]
-                ]
-            ] = None
-    ):
-        super().__init__()
-        self.callable: Optional[
+            executor:
             Callable[
                 [SOURCE], Optional[
                     Generator[FileGeneratorResponse, None, None]
                 ]
+            ]
+    ):
+        super().__init__()
+        self.callable: Callable[
+            [SOURCE], Optional[
+                Generator[FileGeneratorResponse, None, None]
             ]
         ] = executor
 
     def process(
             self,
             source: SOURCE,
-            generated_meta_container: File
+            process_meta: File
     ) -> Optional[Generator[FileGeneratorResponse, None, None]]:
-        if self.callable:
-            return self.callable(source)
-        return None
+        return self.callable(source)

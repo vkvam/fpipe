@@ -15,7 +15,7 @@ class Tar(FileGenerator[FileStream, FileStream]):
     source must be a tar bytestream
     """
 
-    def process(self, source: FileStream, meta_container: File):
+    def process(self, source: FileStream, process_meta: File):
         with tarfile.open(
                 fileobj=source.file, mode="r|*"
         ) as tar_content_stream:

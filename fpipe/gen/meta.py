@@ -24,7 +24,7 @@ class Meta(FileGenerator[FileStream, FileStream]):
     def process(
             self,
             source: SOURCE,
-            generated_meta_container: File) -> Optional[
+            process_meta: File) -> Optional[
         Generator[
             FileGeneratorResponse,
             None,
