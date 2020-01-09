@@ -1,6 +1,13 @@
-from .path import Path  # noqa:F401
-from .version import Version  # noqa:F401
-from .mime import Mime  # noqa:F401
+from .blocksize import BlockSize  # noqa:F401
+from .bucket import Bucket  # noqa:F401
 from .checksum import MD5  # noqa:F401
+from .host import Host  # noqa:F401
+from .mime import Mime  # noqa:F401
 from .modified import Modified  # noqa:F401
+from .password import Password  # noqa:F401
+from .path import Path  # noqa:F401
+from .port import Port  # noqa:F401
+from .prefix import Prefix  # noqa:F401
 from .size import Size  # noqa:F401
+from .username import Username  # noqa:F401
+from .version import Version  # noqa:F401

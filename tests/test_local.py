@@ -26,8 +26,9 @@ class TestLocal(TestCase):
 
             count = 0
 
-            for f in workflow.compose(ByteFile(b'x' * 2**26, Path(file_names[0])),
-                                      ByteFile(b'y' * 2**26, Path(file_names[1]))):
+            for f in workflow.compose(
+                    ByteFile(b'x' * 2 ** 26, Path(file_names[0])),
+                    ByteFile(b'y' * 2 ** 26, Path(file_names[1]))):
                 content = f.file.read()
                 with open(f.meta(Path).value, 'rb') as local_file:
                     self.assertEqual(content, local_file.read())
@@ -39,26 +40,47 @@ class TestLocal(TestCase):
 
     def test_local(self):
         file_names = ('.x.test', '.y.test')
+        append_to_file_name = '.dat'
         try:
             workflow = WorkFlow(
-                Local(),
+                Local(
+                    process_meta=lambda x: Path(
+                        x.meta(Path).value + append_to_file_name
+                    )
+                ),
                 Meta(Size, MD5)
             )
             count = 0
-            for f in workflow.compose(ByteFile(b'x' * 10, Path(file_names[0])),
-                                      ByteFile(b'y' * 20, Path(file_names[1]))):
+            for f in workflow.compose(
+                    ByteFile(
+                        b'x' * 10,
+                        Path(file_names[0])),
+                    ByteFile(
+                        b'y' * 20,
+                        Path(file_names[1]))
+            ):
                 content = f.file.read()
-                with open(f.meta(Path).value, 'rb') as local_file:
+                with open(
+                        f.meta(Path).value,
+                        'rb') as local_file:
                     count += 1
                     self.assertEqual(content, local_file.read())
 
             workflow = WorkFlow(Local())
 
-            for f in workflow.compose(LocalFile(file_names[0])):
+            for f in workflow.compose(
+                    LocalFile(file_names[0] + append_to_file_name)):
                 self.assertEqual(len(f.file.read()), 10)
                 count += 1
 
             self.assertEqual(count, 3)
         finally:
             for f_n in file_names:
-                os.remove(f_n)
+                try:
+                    os.remove(f_n)
+                except:
+                    pass
+                try:
+                    os.remove(f_n + append_to_file_name)
+                except:
+                    pass

@@ -3,6 +3,7 @@ from threading import Thread
 from typing import Callable, Optional, Generator, Iterator, Generic, Union, \
     List, Iterable, TypeVar
 from fpipe.file import FileStream, File, SeekableFileStream
+from fpipe.meta.abstract import FileMeta
 
 SOURCE = TypeVar("SOURCE", File, FileStream, SeekableFileStream)
 TARGET = TypeVar("TARGET", File, FileStream, SeekableFileStream)
@@ -14,9 +15,31 @@ class FileGeneratorResponse(Generic[SOURCE, TARGET]):
         self.threads = thread
 
 
+MetaResolver = Union[
+    FileMeta,
+    Callable[
+        [File],
+        FileMeta
+
+    ]
+]
+
+
 class FileGenerator(Generic[SOURCE, TARGET]):
-    def __init__(self):
+    def __init__(
+            self,
+            process_meta: Optional[
+                Union[Iterable[MetaResolver], MetaResolver]] = None
+    ):
         self.sources: List[Union[Iterable[SOURCE], SOURCE]] = []
+        self.process_meta: Iterable[MetaResolver]
+
+        if isinstance(process_meta, Iterable):
+            self.process_meta = process_meta
+        elif process_meta is None:
+            self.process_meta = []
+        else:
+            self.process_meta = [process_meta]
 
     def reset(self):
         self.sources.clear()
@@ -52,7 +75,17 @@ class FileGenerator(Generic[SOURCE, TARGET]):
         for source in self.source_files:
             responses: Optional[
                 Generator[FileGeneratorResponse, None, None]
-            ] = self.process(source)
+            ] = self.process(
+                source,
+                File(
+                    parent=source,
+                    meta=(
+                        m if isinstance(m, FileMeta) else m(source) for m in
+                        self.process_meta
+                    )
+                )
+            )
+
             if responses:
                 for resp in responses:
                     if resp:
@@ -74,16 +107,19 @@ class FileGenerator(Generic[SOURCE, TARGET]):
 
     @abstractmethod
     def process(
-            self, source: SOURCE
+            self,
+            source: SOURCE,
+            generated_meta_container: File
     ) -> Optional[Generator[FileGeneratorResponse, None, None]]:
         pass
 
 
 class Method(FileGenerator[SOURCE, TARGET]):
     """
-    Convenience File Generator when processing can be handled by a single
-    method.
+    Convenience File Generator for cases where processing can be
+    handled by a single method.
     """
+
     def __init__(
             self,
             executor: Optional[
@@ -92,7 +128,7 @@ class Method(FileGenerator[SOURCE, TARGET]):
                         Generator[FileGeneratorResponse, None, None]
                     ]
                 ]
-            ] = None,
+            ] = None
     ):
         super().__init__()
         self.callable: Optional[
@@ -104,7 +140,9 @@ class Method(FileGenerator[SOURCE, TARGET]):
         ] = executor
 
     def process(
-            self, source: SOURCE
+            self,
+            source: SOURCE,
+            generated_meta_container: File
     ) -> Optional[Generator[FileGeneratorResponse, None, None]]:
         if self.callable:
             return self.callable(source)

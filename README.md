@@ -30,9 +30,10 @@ WorkFlow(
     S3(client, resource),
     Tar(),
     S3(
-        client, resource, bucket=bucket,
-        pathname_resolver=lambda x: f'MyPrefix/{x.meta(Path).value}'
-    )
+        client,
+        resource,
+        process_meta=lambda x: Path(f"MyPrefix/{x.meta(Path).value}"),
+    ),
 ).compose(
     S3File(bucket, key)
 ).flush()
@@ -96,11 +97,11 @@ workflow = WorkFlow(
 
     Program("gpg --batch --symmetric --passphrase 'secret'"),
     Meta(MD5),
-    Local(pass_through=True, pathname_resolver=lambda x: f'{x.meta(Path).value}.gpg'),
+    Local(pass_through=True, process_meta=lambda x: Path(f'{x.meta(Path).value}.gpg')),
 
     Program("gpg --batch --decrypt --passphrase 'secret'"),
     Meta(MD5),
-    Local(pass_through=True, pathname_resolver=lambda x: f'{x.meta(Path).value}.decrypted')
+    Local(pass_through=True, process_meta=lambda x: Path(f'{x.meta(Path).value}.decrypted'))
 )
 
 sources = (

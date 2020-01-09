@@ -6,9 +6,9 @@ from fpipe.meta.abstract import FileMeta, MetaMap, T
 
 class File:
     def __init__(
-        self,
-        parent: Optional["File"] = None,
-        meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None,
+            self,
+            parent: Optional["File"] = None,
+            meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None,
     ):
         self.parent = parent
         self.meta_map = MetaMap()
@@ -17,9 +17,21 @@ class File:
             for m in meta:
                 self.meta_map.set(m)
 
-    # def meta(self, item: Type[FileMeta]) -> FileMeta:
-    def meta(self, t: Type[T], nth: Optional[int] = None) -> T:
-        obj: Optional[File] = self
+    @classmethod
+    def meta_prioritized(cls, t: Type[T], *sources: 'File'):
+        error = FileMetaException(t)
+        for s in sources:
+            try:
+                return cls.__meta(t, s)
+            except FileMetaException:
+                pass
+        raise error
+
+    @classmethod
+    def __meta(cls,
+               t: Type[T],
+               obj: Optional['File'] = None,
+               nth: Optional[int] = None) -> T:
         count = 0
         while obj is not None:
             try:
@@ -39,6 +51,11 @@ class File:
                     raise FileMetaException(t)
         raise FileMetaException(t)
 
+    def meta(self, t: Type[T],
+             nth: Optional[int] = None) -> T:
+
+        return self.__meta(t, self, nth)
+
 
 class FileStream(File):
     """
@@ -46,10 +63,10 @@ class FileStream(File):
     """
 
     def __init__(
-        self,
-        file: BinaryIO,
-        parent: Optional["File"] = None,
-        meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None,
+            self,
+            file: BinaryIO,
+            parent: Optional["File"] = None,
+            meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None
     ):
         super().__init__(parent=parent, meta=meta)
         self.__f = file

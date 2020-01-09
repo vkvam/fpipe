@@ -1,32 +1,46 @@
 from threading import Lock, Thread
-from typing import Union, Optional, Generator, Callable
+from typing import Optional, Generator, Union, Iterable
 from fpipe.exceptions import FileException, FileMetaException
-from fpipe.file import FileStream, File, SeekableFileStream
-from fpipe.file.s3 import S3File, S3PrefixFile, S3SeekableFileStream
-from fpipe.gen.generator import FileGenerator, FileGeneratorResponse
-from fpipe.meta import Path, Version
+from fpipe.file import File, FileStream
+from fpipe.gen.generator import FileGenerator, FileGeneratorResponse, \
+    MetaResolver
+from fpipe.meta import Path, Version, Bucket, Prefix
+from fpipe.meta.s3 import S3MetadataProducer
 from fpipe.utils.mime import guess_mime
 from fpipe.utils.s3_reader import S3FileReader
 from fpipe.utils.s3_writer import S3FileWriter
 
 
-class S3(FileGenerator[FileStream, SeekableFileStream]):
-    f_type = Union[S3File, S3PrefixFile, FileStream]
+class S3(FileGenerator[File, FileStream]):
+    """Generates FileStreams with metadata: Size, Modified, Mime and Path.
 
+    source or process_meta must provide metadata Bucket and Path or Prefix,
+    """
     def __init__(
             self,
             client,
             resource,
-            bucket: Optional[str] = None,
             seekable=False,
-            pathname_resolver: Callable[[File], str] = None,
+            process_meta: Optional[
+                Union[Iterable[MetaResolver], MetaResolver]] = None
     ):
-        super().__init__()
-        self.bucket = bucket
+        """
+
+        :param client:
+        :param resource:
+        :param seekable:
+        :param process_meta: MetaResolver to provider addition FileMeta
+        if source File does not provide everything needed
+        """
+        super().__init__(process_meta)
         self.client = client
         self.resource = resource
         self.seekable = seekable
-        self.pathname_resolver = pathname_resolver
+
+    @staticmethod
+    def build_file_stream(reader: S3FileReader, parent: Optional[File] = None):
+        info = S3MetadataProducer(reader)
+        return FileStream(reader, meta=list(info.generate()), parent=parent)
 
     @staticmethod
     def write_to_s3(
@@ -40,7 +54,7 @@ class S3(FileGenerator[FileStream, SeekableFileStream]):
             encoding: str,
     ):
         try:
-            with S3FileWriter(client, bucket, path.value, mime) as writer:
+            with S3FileWriter(client, bucket, path, mime) as writer:
                 while True:
                     b = source.file.read(writer.buffer.chunk_size)
                     # self.stats.w(b)
@@ -59,80 +73,103 @@ class S3(FileGenerator[FileStream, SeekableFileStream]):
             read_lock.release()
 
     def process(
-            self, source: File
+            self,
+            source: File,
+            generated_meta_container: File
     ) -> Optional[Generator[FileGeneratorResponse, None, None]]:
         client, resource = self.client, self.resource
 
-        if isinstance(source, S3File):
-            bucket, key = source.bucket, source.meta(Path)
+        bucket = File.meta_prioritized(
+            Bucket,
+            generated_meta_container,
+            source
+        ).value
+        try:
+            key = File.meta_prioritized(
+                Path,
+                generated_meta_container,
+                source
+            ).value
+            prefix = None
+        except FileMetaException as e:
             try:
-                version: Optional[Version] = source.meta(Version)
-            except FileMetaException:  # Version not provided to source
-                version = None
+                key = None
+                prefix = File.meta_prioritized(
+                    Prefix,
+                    generated_meta_container,
+                    source).value
+            except FileMetaException as e2:
+                raise e2 from e
 
-            with S3FileReader(
-                    client,
-                    resource,
-                    bucket,
-                    key.value,
-                    version=version.value if version else None,
-                    seekable=self.seekable,
-            ) as reader:
-                yield FileGeneratorResponse(
-                    S3SeekableFileStream(reader, parent=source)
-                )
-        elif isinstance(source, S3PrefixFile):
-            bucket, prefix = source.bucket, source.prefix
+        if key:
+            if isinstance(source, FileStream):
+                bucket = File.meta_prioritized(
+                    Bucket,
+                    generated_meta_container,
+                    source
+                ).value
+
+                mime, encoding = guess_mime(key)
+                read_lock = Lock()
+                with S3FileReader(
+                        client,
+                        resource,
+                        bucket,
+                        key,
+                        lock=read_lock,
+                        meta_lock=Lock(),
+                        seekable=self.seekable,
+                ) as reader:
+
+                    thread_args = (
+                        client,
+                        bucket,
+                        key,
+                        reader,
+                        read_lock,
+                        source,
+                        mime,
+                        encoding,
+                    )
+                    yield FileGeneratorResponse(
+                        self.build_file_stream(reader, source),
+                        Thread(
+                            target=self.write_to_s3,
+                            args=thread_args,
+                            daemon=True,
+                            name=self.__class__.__name__,
+                        ),
+                    )
+            else:
+                try:
+                    version = File.meta_prioritized(
+                        Version,
+                        generated_meta_container,
+                        source
+                    )
+                except FileMetaException:  # Version not provided to source
+                    version = None
+
+                with S3FileReader(
+                        client,
+                        resource,
+                        bucket,
+                        key,
+                        version=version.value if version else None,
+                        seekable=self.seekable,
+                ) as reader:
+                    yield FileGeneratorResponse(
+                        self.build_file_stream(reader, source)
+                    )
+        elif prefix:
             for o in self.list_objects(client, bucket, prefix):
                 with S3FileReader(
                         client, resource, bucket, o["Key"],
                         seekable=self.seekable
                 ) as reader:
                     yield FileGeneratorResponse(
-                        S3SeekableFileStream(reader, parent=source)
+                        self.build_file_stream(reader, source)
                     )
-        elif isinstance(source, FileStream):
-            if not self.bucket:
-                raise FileException("FileStream source needs bucket defined")
-            bucket = self.bucket
-
-            path = (
-                Path(self.pathname_resolver(source))
-                if self.pathname_resolver
-                else source.meta(Path)
-            )
-
-            mime, encoding = guess_mime(path.value)
-            read_lock = Lock()
-            with S3FileReader(
-                    client,
-                    resource,
-                    bucket,
-                    path.value,
-                    lock=read_lock,
-                    meta_lock=Lock(),
-                    seekable=self.seekable,
-            ) as reader:
-
-                thread_args = (
-                    client,
-                    bucket,
-                    path,
-                    reader,
-                    read_lock,
-                    source,
-                    mime,
-                    encoding,
-                )
-                yield FileGeneratorResponse(
-                    S3SeekableFileStream(reader, parent=source),
-                    Thread(
-                        target=self.write_to_s3,
-                        args=thread_args,
-                        daemon=True,
-                        name=self.__class__.__name__,
-                    ),
-                )
         else:
             raise FileException(
                 f"FileStream source {source.__class__.__name__} not valid"

@@ -1,5 +1,10 @@
 from fpipe.file import File
 from fpipe.meta import Path
+from fpipe.meta.blocksize import BlockSize
+from fpipe.meta.host import Host
+from fpipe.meta.password import Password
+from fpipe.meta.port import Port
+from fpipe.meta.username import Username
 from fpipe.utils.const import DEFAULT_FTP_BLOCK_SIZE
 
 
@@ -13,10 +18,12 @@ class FTPFile(File):
         port: int,
         block_size: int = DEFAULT_FTP_BLOCK_SIZE
     ):
-        super().__init__(meta=[Path(path)])
-        self.path = path
-        self.host = host
-        self.username = username
-        self.password = password
-        self.port = port
-        self.block_size = block_size
+        super().__init__(meta=(
+            Path(path),
+            Host(host),
+            Username(username),
+            Password(password),
+            Port(port),
+            BlockSize(block_size)
+
+        ))

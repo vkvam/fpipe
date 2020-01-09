@@ -1,3 +1,6 @@
+from typing import Type, Union
+
+
 class SeekException(Exception):
     pass
 
@@ -11,5 +14,10 @@ class S3WriteException(Exception):
 
 
 class FileMetaException(Exception):
-    def __init__(self, obj: object):
-        super().__init__(f"Could not return {obj.__class__.__name__}")
+    def __init__(self, obj: Union[Type, object]):
+        if isinstance(obj, type):
+            super().__init__(f"Could not return metadata with type: "
+                             f"{obj.__name__}")
+        else:
+            super().__init__(f"Could not return metadata with type: "
+                             f"{obj.__class__.__name__}")

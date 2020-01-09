@@ -16,7 +16,7 @@ class Program(FileGenerator[FileStream, FileStream]):
         command: Union[List[str], str],
         buffer_size=PIPE_BUFFER_SIZE,
         std_err=False,
-        posix=True,
+        posix=True
     ):
         """
         :param command: if a string is passed, shell
@@ -61,13 +61,14 @@ class Program(FileGenerator[FileStream, FileStream]):
                 break
 
     def process(
-        self, source: File
+            self,
+            source: File,
+            generated_meta_container: File
     ) -> Optional[Generator[FileGeneratorResponse, None, None]]:
         buf_size = self.buf_size
         run_std_in = isinstance(source, FileStream)
 
         with BytesLoop() as byte_loop:
-
             with subprocess.Popen(
                 self.command,
                 stdin=subprocess.PIPE if run_std_in else None,
