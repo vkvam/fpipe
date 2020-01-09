@@ -1,7 +1,7 @@
 import threading
 from typing import Optional, Union, Iterable
 
-from fpipe.file.file import File, FileStream, SeekableFileStream
+from fpipe.file.file import File, FileStream
 from fpipe.gen.generator import FileGenerator, FileGeneratorResponse, \
     MetaResolver
 from fpipe.meta.path import Path
@@ -65,10 +65,10 @@ class Local(FileGenerator[FileStream, FileStream]):
                 _process(source, path.value)
                 with open(path.value, "rb") as f:
                     yield FileGeneratorResponse(
-                        SeekableFileStream(f, parent=source, meta=path)
+                        FileStream(f, parent=source, meta=path)
                     )
         else:
             with open(path.value, "rb") as f:
                 yield FileGeneratorResponse(
-                    SeekableFileStream(f, parent=source, meta=path)
+                    FileStream(f, parent=source, meta=path)
                 )

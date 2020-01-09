@@ -1,21 +1,21 @@
 import hashlib
 from typing import Union
 
-from fpipe.meta.abstract import FileMetaFuture, FileMetaCalculator
+from fpipe.meta.abstract import FileMeta, FileMetaCalculator
 
 
 class MD5Calculator(FileMetaCalculator[str]):
-    def __init__(self, calculable: "MD5"):
-        super().__init__(calculable)
-        self.__sig = hashlib.md5()
+    def __init__(self):
+        super().__init__(MD5)
+        self.__md5 = hashlib.md5()
 
     def write(self, s: Union[bytes, bytearray]):
-        self.__sig.update(s)
+        self.__md5.update(s)
         if not s:
-            self.calculable.set_value(self.__sig.hexdigest())
+            self.calculable.value = self.__md5.hexdigest()
 
 
-class MD5(FileMetaFuture[str]):
+class MD5(FileMeta[str]):
     @staticmethod
     def get_calculator() -> FileMetaCalculator[str]:
-        return MD5Calculator(MD5())
+        return MD5Calculator()

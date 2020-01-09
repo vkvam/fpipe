@@ -2,11 +2,11 @@ from abc import abstractmethod
 from threading import Thread
 from typing import Callable, Optional, Generator, Iterator, Generic, Union, \
     List, Iterable, TypeVar
-from fpipe.file import FileStream, File, SeekableFileStream
+from fpipe.file import FileStream, File
 from fpipe.meta.abstract import FileMeta
 
-SOURCE = TypeVar("SOURCE", File, FileStream, SeekableFileStream)
-TARGET = TypeVar("TARGET", File, FileStream, SeekableFileStream)
+SOURCE = TypeVar("SOURCE", File, FileStream)
+TARGET = TypeVar("TARGET", File, FileStream)
 
 
 class FileGeneratorResponse(Generic[SOURCE, TARGET]):

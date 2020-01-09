@@ -3,15 +3,22 @@ from typing import Type, Optional, Generator, Tuple
 
 from fpipe.file.file import FileStream, File
 from fpipe.gen.generator import SOURCE, FileGenerator, FileGeneratorResponse
-from fpipe.meta.abstract import FileMetaFuture
+from fpipe.meta.abstract import FileMeta
 from fpipe.utils.bytesloop import BytesLoop
 from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
 class Meta(FileGenerator[FileStream, FileStream]):
-    def __init__(self, *file_meta: Type[FileMetaFuture]):
+    """Generator producing FileMeta by doing calculations on a FileStream
+    """
+    def __init__(self, *file_meta: Type[FileMeta]):
+        """
+
+        :param file_meta: a FileMeta with a link to a FileMetaCalculator
+        through FileMeta.get_calculator()
+        """
         super().__init__()
-        self.file_meta: Tuple[Type[FileMetaFuture], ...] = file_meta
+        self.file_meta: Tuple[Type[FileMeta], ...] = file_meta
         self.bufsize = PIPE_BUFFER_SIZE
 
     def process(

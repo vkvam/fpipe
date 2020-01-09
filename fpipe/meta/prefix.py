@@ -1,5 +1,5 @@
-from fpipe.meta.abstract import FileMetaValue
+from fpipe.meta.abstract import FileMeta
 
 
-class Prefix(FileMetaValue[str]):
+class Prefix(FileMeta[str]):
     pass

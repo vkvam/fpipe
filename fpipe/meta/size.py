@@ -1,20 +1,20 @@
 from typing import Union
 
-from fpipe.meta.abstract import FileMetaFuture, FileMetaCalculator, T
+from fpipe.meta.abstract import FileMeta, FileMetaCalculator, T
 
 
 class SizeCalculator(FileMetaCalculator):
-    def __init__(self, calculable: "Size"):
-        super().__init__(calculable)
-        self.v = 0
+    def __init__(self):
+        super().__init__(Size)
+        self.__byte_count = 0
 
     def write(self, s: Union[bytes, bytearray]):
-        self.v += len(s)
+        self.__byte_count += len(s)
         if not s:
-            self.calculable.set_value(self.v)
+            self.calculable.value = self.__byte_count
 
 
-class Size(FileMetaFuture[int]):
+class Size(FileMeta[int]):
     @staticmethod
     def get_calculator() -> FileMetaCalculator[T]:
-        return SizeCalculator(Size())
+        return SizeCalculator()

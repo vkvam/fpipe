@@ -5,6 +5,8 @@ from fpipe.meta.abstract import FileMeta, MetaMap, T
 
 
 class File:
+    """container for FileMeta related to a file
+    """
     def __init__(
             self,
             parent: Optional["File"] = None,
@@ -58,8 +60,7 @@ class File:
 
 
 class FileStream(File):
-    """
-    A non seekable file-like
+    """container for a file-like with related FileMeta
     """
 
     def __init__(
@@ -74,9 +75,3 @@ class FileStream(File):
     @property
     def file(self) -> BinaryIO:
         return self.__f
-
-
-class SeekableFileStream(FileStream):
-    """
-    A seekable file-like
-    """

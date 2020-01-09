@@ -1,5 +1,5 @@
-from fpipe.meta.abstract import FileMetaValue
+from fpipe.meta.abstract import FileMeta
 
 
-class Version(FileMetaValue[str]):
+class Version(FileMeta[str]):
     pass

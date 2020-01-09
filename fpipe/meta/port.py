@@ -1,5 +1,5 @@
-from fpipe.meta.abstract import FileMetaValue
+from fpipe.meta.abstract import FileMeta
 
 
-class Port(FileMetaValue[int]):
+class Port(FileMeta[int]):
     pass

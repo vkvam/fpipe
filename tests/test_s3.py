@@ -330,8 +330,7 @@ class TestS3(TestCase):
 
         test_streams = [TestStream(size, "xyz") for size in sizes]
 
-        gen = S3(client, resource, seekable=False,
-                 process_meta=Bucket(bucket)).chain(
+        gen = S3(client, resource, process_meta=Bucket(bucket)).chain(
             test_streams
         )
 
@@ -393,7 +392,9 @@ class TestS3(TestCase):
             S3(
                 client,
                 resource,
-                process_meta=lambda x: Path(f"MyPrefix/{x.meta(Path).value}"),
+                process_meta=(
+                    lambda x: Path(f"MyPrefix/{x.meta(Path).value}"),
+                ),
             ),
         ).compose(S3File(bucket, key)).flush()
 

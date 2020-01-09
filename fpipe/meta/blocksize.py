@@ -1,5 +1,5 @@
-from fpipe.meta.abstract import FileMetaValue
+from fpipe.meta.abstract import FileMeta
 
 
-class BlockSize(FileMetaValue[int]):
+class BlockSize(FileMeta[int]):
     pass

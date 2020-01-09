@@ -1,5 +1,5 @@
-from fpipe.meta.abstract import FileMetaValue
+from fpipe.meta.abstract import FileMeta
 
 
-class Path(FileMetaValue[str]):
+class Path(FileMeta[str]):
     pass

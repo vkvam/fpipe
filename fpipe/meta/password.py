@@ -1,5 +1,5 @@
-from fpipe.meta.abstract import FileMetaValue
+from fpipe.meta.abstract import FileMeta
 
 
-class Password(FileMetaValue[str]):
+class Password(FileMeta[str]):
     pass

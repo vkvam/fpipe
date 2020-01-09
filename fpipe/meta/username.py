@@ -1,5 +1,5 @@
-from fpipe.meta.abstract import FileMetaValue
+from fpipe.meta.abstract import FileMeta
 
 
-class Username(FileMetaValue[str]):
+class Username(FileMeta[str]):
     pass

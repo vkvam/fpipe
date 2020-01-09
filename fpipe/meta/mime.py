@@ -1,5 +1,5 @@
-from fpipe.meta.abstract import FileMetaFuture
+from fpipe.meta.abstract import FileMeta
 
 
-class Mime(FileMetaFuture[str]):
+class Mime(FileMeta[str]):
     pass
