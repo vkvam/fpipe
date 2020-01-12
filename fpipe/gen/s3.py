@@ -1,7 +1,7 @@
 from threading import Lock, Thread
-from typing import Optional, Generator, Union, Iterable
+from typing import Optional, Generator, Union, Iterable, BinaryIO
 from fpipe.exceptions import FileException, FileMetaException
-from fpipe.file import File, FileStream
+from fpipe.file import File
 from fpipe.gen.generator import FileGenerator, FileGeneratorResponse, \
     MetaResolver
 from fpipe.meta import Path, Version, Bucket, Prefix
@@ -11,8 +11,8 @@ from fpipe.utils.s3_reader import S3FileReader
 from fpipe.utils.s3_writer import S3FileWriter
 
 
-class S3(FileGenerator[File, FileStream]):
-    """Generates FileStreams with metadata: Size, Modified, Mime and Path.
+class S3(FileGenerator):
+    """Generates Files with metadata: Size, Modified, Mime and Path.
 
     source or process_meta must provide metadata Bucket and Path or Prefix,
     """
@@ -40,7 +40,11 @@ class S3(FileGenerator[File, FileStream]):
     @staticmethod
     def build_file_stream(reader: S3FileReader, parent: Optional[File] = None):
         info = S3MetadataProducer(reader)
-        return FileStream(reader, meta=list(info.generate()), parent=parent)
+        return File(
+            file=reader,
+            meta=list(info.generate()),
+            parent=parent
+        )
 
     @staticmethod
     def write_to_s3(
@@ -49,14 +53,14 @@ class S3(FileGenerator[File, FileStream]):
             path,
             reader,
             read_lock,
-            source: FileStream,
+            source: BinaryIO,
             mime: str,
             encoding: str,
     ):
         try:
             with S3FileWriter(client, bucket, path, mime) as writer:
                 while True:
-                    b = source.file.read(writer.buffer.chunk_size)
+                    b = source.read(writer.buffer.chunk_size)
                     # self.stats.w(b)
                     writer.write(b)
                     if not b:
@@ -102,7 +106,7 @@ class S3(FileGenerator[File, FileStream]):
                 raise e2 from e
 
         if key:
-            if isinstance(source, FileStream):
+            if source.file:
                 bucket = File.meta_prioritized(
                     Bucket,
                     process_meta,
@@ -127,7 +131,7 @@ class S3(FileGenerator[File, FileStream]):
                         key,
                         reader,
                         read_lock,
-                        source,
+                        source.file,
                         mime,
                         encoding,
                     )
@@ -172,7 +176,7 @@ class S3(FileGenerator[File, FileStream]):
                     )
         else:
             raise FileException(
-                f"FileStream source {source.__class__.__name__} not valid"
+                f"File source {source.__class__.__name__} not valid"
             )
 
     @staticmethod

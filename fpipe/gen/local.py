@@ -1,7 +1,7 @@
 import threading
-from typing import Optional, Union, Iterable
+from typing import Optional, Union, Iterable, BinaryIO
 
-from fpipe.file.file import File, FileStream
+from fpipe.file.file import File
 from fpipe.gen.generator import FileGenerator, FileGeneratorResponse, \
     MetaResolver
 from fpipe.meta.path import Path
@@ -10,12 +10,12 @@ from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
 def _process(
-        source: FileStream, path_name: str,
+        source: BinaryIO, path_name: str,
         byte_loop: Optional[BytesLoop] = None
 ):
     with open(path_name, "wb") as f2:
         while True:
-            b = source.file.read(PIPE_BUFFER_SIZE)
+            b = source.read(PIPE_BUFFER_SIZE)
             if byte_loop:
                 byte_loop.write(b)
             f2.write(b)
@@ -23,7 +23,7 @@ def _process(
                 break
 
 
-class Local(FileGenerator[File, FileStream]):
+class Local(FileGenerator):
     def __init__(
             self,
             pass_through=False,
@@ -47,27 +47,27 @@ class Local(FileGenerator[File, FileStream]):
             source
         )
 
-        if isinstance(source, FileStream):
+        if source.file:
             if self.pass_through:
                 with BytesLoop() as byte_loop:
                     proc_thread = threading.Thread(
                         target=_process,
-                        args=(source, path.value, byte_loop),
+                        args=(source.file, path.value, byte_loop),
                         name=f"{self.__class__.__name__}",
                         daemon=True,
                     )
                     yield FileGeneratorResponse(
-                        FileStream(byte_loop, parent=source, meta=path),
+                        File(file=byte_loop, parent=source, meta=path),
                         proc_thread,
                     )
             else:
-                _process(source, path.value)
+                _process(source.file, path.value)
                 with open(path.value, "rb") as f:
                     yield FileGeneratorResponse(
-                        FileStream(f, parent=source, meta=path)
+                        File(file=f, parent=source, meta=path)
                     )
         else:
             with open(path.value, "rb") as f:
                 yield FileGeneratorResponse(
-                    FileStream(f, parent=source, meta=path)
+                    File(file=f, parent=source, meta=path)
                 )

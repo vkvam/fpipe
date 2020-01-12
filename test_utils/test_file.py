@@ -2,8 +2,8 @@ import string
 from types import TracebackType
 from typing import Iterable, Optional, Type, AnyStr, BinaryIO
 
-from fpipe.file.file import FileStream
 from fpipe.exceptions import SeekException
+from fpipe.file import File
 from fpipe.meta.path import Path
 
 
@@ -124,9 +124,9 @@ class ReversibleTestFile(TestFile):
                          range(last_count, last_count + remaining))
 
 
-class TestStream(FileStream):
+class TestStream(File):
     def __init__(self, size, path, reversible=False):
         if reversible:
-            super().__init__(ReversibleTestFile(size), meta=[Path(path)])
+            super().__init__(file=ReversibleTestFile(size), meta=[Path(path)])
         else:
-            super().__init__(TestFile(size), meta=[Path(path)])
+            super().__init__(file=TestFile(size), meta=[Path(path)])

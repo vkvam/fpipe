@@ -1,22 +1,21 @@
 import shlex
 import subprocess
 import threading
-from typing import Optional, Generator, Union, List
+from typing import Optional, Generator, Union, List, BinaryIO
 
-from fpipe.file import File
-from fpipe.file.file import FileStream
+from fpipe.file.file import File
 from fpipe.gen.generator import FileGenerator, FileGeneratorResponse
 from fpipe.utils.bytesloop import BytesLoop
 from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
-class Program(FileGenerator[FileStream, FileStream]):
+class Program(FileGenerator):
     def __init__(
-        self,
-        command: Union[List[str], str],
-        buffer_size=PIPE_BUFFER_SIZE,
-        std_err=False,
-        posix=True
+            self,
+            command: Union[List[str], str],
+            buffer_size=PIPE_BUFFER_SIZE,
+            std_err=False,
+            posix=True
     ):
         """
         :param command: if a string is passed, shell
@@ -39,9 +38,9 @@ class Program(FileGenerator[FileStream, FileStream]):
             )
 
     @staticmethod
-    def __std_in_to_cmd(source: FileStream, proc, buf_size):
+    def __std_in_to_cmd(source_file: BinaryIO, proc, buf_size):
         while True:
-            read_chunk = source.file.read(buf_size)
+            read_chunk = source_file.read(buf_size)
             # stats.r(read_chunk)
             proc.stdin.write(read_chunk)
 
@@ -66,12 +65,11 @@ class Program(FileGenerator[FileStream, FileStream]):
             generated_meta_container: File
     ) -> Optional[Generator[FileGeneratorResponse, None, None]]:
         buf_size = self.buf_size
-        run_std_in = isinstance(source, FileStream)
 
         with BytesLoop() as byte_loop:
             with subprocess.Popen(
                 self.command,
-                stdin=subprocess.PIPE if run_std_in else None,
+                stdin=subprocess.PIPE if source.file else None,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE if self.std_err else subprocess.DEVNULL,
                 bufsize=buf_size
@@ -84,15 +82,15 @@ class Program(FileGenerator[FileStream, FileStream]):
                         daemon=True,
                     )
                 ]
-                if run_std_in:
+                if source.file:
                     threads.append(
                         threading.Thread(
                             target=self.__std_in_to_cmd,
-                            args=(source, proc, buf_size),
+                            args=(source.file, proc, buf_size),
                             name=f"{self.__class__.__name__} STD-OUT",
                             daemon=True,
                         )
                     )
                 yield FileGeneratorResponse(
-                    FileStream(byte_loop, parent=source), *threads
+                    File(file=byte_loop, parent=source), *threads
                 )

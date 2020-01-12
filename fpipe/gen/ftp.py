@@ -1,4 +1,4 @@
-from fpipe.file import File, FileStream
+from fpipe.file import File
 from fpipe.gen.generator import FileGenerator, FileGeneratorResponse
 from fpipe.meta.blocksize import BlockSize
 from fpipe.meta.host import Host
@@ -9,7 +9,7 @@ from fpipe.meta.username import Username
 from fpipe.utils.ftp import FTPClient
 
 
-class FTP(FileGenerator[File, FileStream]):
+class FTP(FileGenerator):
     def process(self,
                 source: File,
                 generated_meta_container: File):
@@ -24,6 +24,6 @@ class FTP(FileGenerator[File, FileStream]):
             source.meta(Path).value
         )
         yield FileGeneratorResponse(
-            FileStream(bytes_io, parent=source),
+            File(file=bytes_io, parent=source),
             thread
         )

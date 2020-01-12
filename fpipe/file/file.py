@@ -7,10 +7,12 @@ from fpipe.meta.abstract import FileMeta, MetaMap, T
 class File:
     """container for FileMeta related to a file
     """
+
     def __init__(
             self,
-            parent: Optional["File"] = None,
-            meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None,
+            file: Optional[BinaryIO] = None,
+            parent: Optional['File'] = None,
+            meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None
     ):
         self.parent = parent
         self.meta_map = MetaMap()
@@ -18,6 +20,8 @@ class File:
         if meta:
             for m in meta:
                 self.meta_map.set(m)
+
+        self.__file = file
 
     @classmethod
     def meta_prioritized(cls, t: Type[T], *sources: 'File'):
@@ -58,20 +62,6 @@ class File:
 
         return self.__meta(t, self, nth)
 
-
-class FileStream(File):
-    """container for a file-like with related FileMeta
-    """
-
-    def __init__(
-            self,
-            file: BinaryIO,
-            parent: Optional["File"] = None,
-            meta: Optional[Union[FileMeta, Iterable[FileMeta]]] = None
-    ):
-        super().__init__(parent=parent, meta=meta)
-        self.__f = file
-
     @property
-    def file(self) -> BinaryIO:
-        return self.__f
+    def file(self) -> Optional[BinaryIO]:
+        return self.__file

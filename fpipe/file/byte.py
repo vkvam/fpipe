@@ -1,11 +1,11 @@
 import io
 from typing import Union, Optional, Iterable
 
-from fpipe.file.file import FileStream
+from fpipe.file.file import File
 from fpipe.meta.abstract import FileMeta
 
 
-class ByteFile(FileStream):
+class ByteFile(File):
     def __init__(
         self,
         s: Union[bytes, bytearray],

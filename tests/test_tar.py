@@ -5,7 +5,7 @@ from unittest import TestCase
 
 from typing import Tuple
 
-from fpipe.file.file import FileStream
+from fpipe.file.file import File
 from fpipe.gen import Program, Tar
 from fpipe.meta import Path, Size, Modified
 from test_utils.test_file import ReversibleTestFile
@@ -51,7 +51,7 @@ class TestTar(TestCase):
 
         # Pass it through ProcessFileGenerator to ensure we are working
         # with a non-seekable stream
-        proc = Program(command='cat /dev/stdin').chain(FileStream(f))
+        proc = Program(command='cat /dev/stdin').chain(File(f))
         for f in Tar().chain(proc):
             source_content, source_path, \
             source_size, source_time = source_file_content.pop(0)

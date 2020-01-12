@@ -1,15 +1,15 @@
 import threading
 from typing import Type, Optional, Generator, Tuple
 
-from fpipe.file.file import FileStream, File
-from fpipe.gen.generator import SOURCE, FileGenerator, FileGeneratorResponse
+from fpipe.file.file import File
+from fpipe.gen.generator import FileGenerator, FileGeneratorResponse
 from fpipe.meta.abstract import FileMeta
 from fpipe.utils.bytesloop import BytesLoop
 from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
-class Meta(FileGenerator[FileStream, FileStream]):
-    """Generator producing FileMeta by doing calculations on a FileStream
+class Meta(FileGenerator):
+    """Generator producing FileMeta by doing calculations on a File
     """
     def __init__(self, *file_meta: Type[FileMeta]):
         """
@@ -23,7 +23,7 @@ class Meta(FileGenerator[FileStream, FileStream]):
 
     def process(
             self,
-            source: SOURCE,
+            source: File,
             process_meta: File) -> Optional[
         Generator[
             FileGeneratorResponse,
@@ -58,8 +58,8 @@ class Meta(FileGenerator[FileStream, FileStream]):
             )
 
             yield FileGeneratorResponse(
-                FileStream(
-                    byte_loop,
+                File(
+                    file=byte_loop,
                     parent=source,
                     meta=(
                         c.calculable for c in mata_calculators if c

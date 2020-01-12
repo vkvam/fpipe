@@ -2,7 +2,7 @@ from copy import copy
 
 from unittest import TestCase
 
-from fpipe.file import FileStream
+from fpipe.file import File
 from fpipe.gen import Meta
 from fpipe.gen import Method
 from fpipe.gen.flush import Flush
@@ -17,12 +17,12 @@ class TestFlush(TestCase):
         stream_sizes = [2 ** i for i in range(18, 22)]
         stream_sizes_copy = copy(stream_sizes)
 
-        def assert_file_properties(file_stream: FileStream):
+        def assert_file_properties(file_stream: File):
             _f = file_stream.file
             self.assertTrue(_f.readable())
             self.assertTrue(_f.writable())
 
-        def assert_file_sizes(file_stream: FileStream):
+        def assert_file_sizes(file_stream: File):
             self.assertEqual(file_stream.meta(Size).value, stream_sizes_copy.pop(0))
 
         workflow = WorkFlow(
@@ -38,7 +38,7 @@ class TestFlush(TestCase):
         stream_sizes = [2 ** i for i in range(18, 22)]
         stream_sizes_copy = copy(stream_sizes)
 
-        def assert_file_properties(file_stream: FileStream):
+        def assert_file_properties(file_stream: File):
             _f = file_stream.file
             self.assertTrue(_f.readable())
             self.assertTrue(_f.writable())
