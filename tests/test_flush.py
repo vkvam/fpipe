@@ -7,6 +7,7 @@ from fpipe.gen import Meta
 from fpipe.gen import Method
 from fpipe.gen.flush import Flush
 from fpipe.meta import Size
+from fpipe.meta.stream import Stream
 from fpipe.workflow import WorkFlow
 from test_utils.test_file import TestStream
 
@@ -18,12 +19,12 @@ class TestFlush(TestCase):
         stream_sizes_copy = copy(stream_sizes)
 
         def assert_file_properties(file_stream: File):
-            _f = file_stream.file
+            _f = file_stream[Stream]
             self.assertTrue(_f.readable())
             self.assertTrue(_f.writable())
 
         def assert_file_sizes(file_stream: File):
-            self.assertEqual(file_stream.meta(Size).value, stream_sizes_copy.pop(0))
+            self.assertEqual(file_stream[Size], stream_sizes_copy.pop(0))
 
         workflow = WorkFlow(
             Meta(Size),
@@ -39,7 +40,7 @@ class TestFlush(TestCase):
         stream_sizes_copy = copy(stream_sizes)
 
         def assert_file_properties(file_stream: File):
-            _f = file_stream.file
+            _f = file_stream[Stream]
             self.assertTrue(_f.readable())
             self.assertTrue(_f.writable())
 
@@ -49,4 +50,4 @@ class TestFlush(TestCase):
         )
 
         for f in workflow.compose(TestStream(s, f'{s}', reversible=True) for s in stream_sizes).flush_iter():
-            self.assertEqual(f.meta(Size).value, stream_sizes_copy.pop(0))
+            self.assertEqual(f[Size], stream_sizes_copy.pop(0))

@@ -11,7 +11,7 @@ from typing import IO, Iterable, List
 from botocore import exceptions
 from mock import patch
 
-from fpipe.exceptions import SeekException, FileException, FileMetaException
+from fpipe.exceptions import SeekException, FileException, FileDataException
 from fpipe.gen import Meta, S3, Tar
 from fpipe.file import S3File, S3PrefixFile, ByteFile
 from fpipe.meta import Mime, Modified, Version, Path, Size, Bucket
@@ -19,6 +19,7 @@ from fpipe.meta import Mime, Modified, Version, Path, Size, Bucket
 from moto import mock_s3, mock_iam, mock_config
 
 from fpipe.meta.checksum import MD5
+from fpipe.meta.stream import Stream
 from fpipe.utils.const import PIPE_BUFFER_SIZE
 from fpipe.utils.s3_writer_worker import worker, CorruptedMultipartError
 from fpipe.workflow import WorkFlow
@@ -42,7 +43,7 @@ class TestS3(TestCase):
     @mock_s3
     @mock_iam
     @mock_config
-    def test_s3_meta(self):
+    def test_s3(self):
         client, resource, bucket = self.__init_s3()
         size = 2 ** 20
 
@@ -55,26 +56,26 @@ class TestS3(TestCase):
 
         gen = Meta(Size, MD5).chain(gen)
         for f in gen:
-            with self.assertRaises(FileMetaException):
+            with self.assertRaises(FileDataException):
                 # It is not possible to retrieve size from S3FileGenerator
                 # before object has been written
-                x = f.parent.meta(Size).value
-            with self.assertRaises(FileMetaException):
-                # It is not possible to retrieve size from FileMetaGenerator
+                x = f.parent[Size]
+            with self.assertRaises(FileDataException):
+                # It is not possible to retrieve size from FileDataGenerator
                 # before the complete stream has been read
-                x = f.meta(MD5).value
-            cnt = f.file.read()
-            test_stream.file.seek(0)
-            size_calc = f.meta(Size).value
+                x = f[MD5]
+            cnt = f[Stream].read()
+            test_stream[Stream].seek(0)
+            size_calc = f[Size]
             self.assertEqual(size_calc, size)
 
-            self.assertEqual(f.meta(Mime).value, "application/octet-stream")
-            self.assertEqual(f.meta(Size, 1).value, size)
+            self.assertEqual(f[Mime], "application/octet-stream")
+            self.assertEqual(f[Size, 1], size)
 
-            self.assertEqual(cnt, test_stream.file.read())
-            self.assertIsInstance(f.parent.meta(Modified).value,
+            self.assertEqual(cnt, test_stream[Stream].read())
+            self.assertIsInstance(f.parent[Modified],
                                   datetime.datetime)
-            self.assertIsInstance(f.meta(Modified).value, datetime.datetime)
+            self.assertIsInstance(f[Modified], datetime.datetime)
 
     @mock_s3
     @mock_iam
@@ -97,7 +98,7 @@ class TestS3(TestCase):
 
         for f in gen:
             source_key, source_body = all_files_copy.pop(0)
-            self.assertEqual(f.file.read(), source_body)
+            self.assertEqual(f[Stream].read(), source_body)
         self.assertEqual(len(all_files_copy), 0)
 
     @mock_s3
@@ -197,8 +198,8 @@ class TestS3(TestCase):
         all_files_copy = copy(all_files)
         for f in gen:
             source_key, source_body = all_files_copy.pop(0)
-            self.assertEqual(source_key, f.meta(Path).value)
-            self.assertEqual(f.file.read(), source_body)
+            self.assertEqual(source_key, f[Path])
+            self.assertEqual(f[Stream].read(), source_body)
         self.assertEqual(len(all_files_copy), 0)
 
     @mock_s3
@@ -208,7 +209,7 @@ class TestS3(TestCase):
         client, resource, bucket = self.__init_s3()
         file_size = 2 ** 20
         test_stream = TestStream(file_size, "xyz", reversible=True)
-        test_file = deepcopy(test_stream.file)
+        test_file = deepcopy(test_stream[Stream])
 
         def seek(files: Iterable[IO[bytes]], n=None, whence=0):
             for file in files:
@@ -224,7 +225,7 @@ class TestS3(TestCase):
                     process_meta=Bucket(bucket)).chain(
             test_stream
         ):
-            s3_file = f.file
+            s3_file = f[Stream]
 
             extract_length = 13 + 42 + 69 + 101 + 404 + 420
 
@@ -258,17 +259,17 @@ class TestS3(TestCase):
             for f in S3(client, resource, process_meta=Bucket(bucket)).chain(
                     TestStream(1, "xyz", reversible=True)
             ):
-                f.file.seek(0, 3)
+                f[Stream].seek(0, 3)
 
         # Assert we can not evaluate bucket
-        with self.assertRaises(FileMetaException):
+        with self.assertRaises(FileDataException):
             for f in S3(client, resource).chain(
                     TestStream(1, "xyz", reversible=True)):
-                f.file.seek(0, 3)
+                f[Stream].seek(0, 3)
 
         with self.assertRaises(FileException):
             for f in S3(client, resource).chain(S3File(bucket, "x")):
-                f.file.read(1)
+                f[Stream].read(1)
 
     @mock_s3
     @mock_iam
@@ -285,7 +286,7 @@ class TestS3(TestCase):
                     ByteFile(b"0123456789" * (10 ** 7), meta=Path(key)))
                         .flush_iter()
         ):
-            file = f.file
+            file = f[Stream]
             if file.seekable() and not file.writable() and not file.closed:
                 for start in (0, 10 ** 6, 10 ** 5 + 100, 10 ** 2 + 100):
                     file.seek(start + picked_nr)
@@ -306,7 +307,7 @@ class TestS3(TestCase):
                     process_meta=Bucket(bucket)).chain(
             ByteFile(b"0123456789" * (10 ** 7), meta=Path(key))
         ).flush_iter():
-            file = f.file
+            file = f[Stream]
             if file.seekable() and not file.writable() and not file.closed:
                 for start in (0, 10 ** 6, 10 ** 5 + 100, 10 ** 2 + 100):
                     with self.assertRaises(SeekException):
@@ -334,9 +335,9 @@ class TestS3(TestCase):
             test_streams
         )
 
-        # Note: f.meta(S3Version) will raise exception since moto
+        # Note: f[S3Version] will raise exception since moto
         # does not give version for multiparts
-        versions = [[f.file.read() and f.meta(Path).value, "?"] for f in gen]
+        versions = [[f[Stream].read() and f[Path], "?"] for f in gen]
 
         for idx, version in enumerate(
                 resource.Bucket(bucket).object_versions.filter(Prefix="xyz")
@@ -349,11 +350,11 @@ class TestS3(TestCase):
 
         gen = S3(client, resource, seekable=False).chain(s3_files)
         for f in gen:
-            content = f.file.read()
-            self.assertEqual(f.meta(Version).value, versions.pop(0)[1])
+            content = f[Stream].read()
+            self.assertEqual(f[Version], versions.pop(0)[1])
             t_stream = test_streams.pop(0)
-            t_stream.file.seek(0)
-            self.assertEqual(content, t_stream.file.read())
+            t_stream[Stream].seek(0)
+            self.assertEqual(content, t_stream[Stream].read())
         self.assertEqual(len(test_streams), 0)
 
     def __create_tar(self, tar: tarfile.TarFile, path, size):
@@ -393,7 +394,7 @@ class TestS3(TestCase):
                 client,
                 resource,
                 process_meta=(
-                    lambda x: Path(f"MyPrefix/{x.meta(Path).value}"),
+                    lambda x: Path(f"MyPrefix/{x[Path]}"),
                 ),
             ),
         ).compose(S3File(bucket, key)).flush()

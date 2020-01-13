@@ -1,16 +1,16 @@
 from abc import abstractmethod
 from typing import TypeVar, Type, cast, Generic, Optional, Callable, Union
 
-from fpipe.exceptions import FileMetaException
+from fpipe.exceptions import FileDataException
 
 T = TypeVar("T")
 
 
-class FileMetaCalculator(Generic[T]):
-    """abstract class for something that can produce a FileMeta
+class FileDataCalculator(Generic[T]):
+    """abstract class for something that can produce a FileData
     """
 
-    def __init__(self, calculable: "Type[FileMeta[T]]"):
+    def __init__(self, calculable: "Type[FileData[T]]"):
         self.calculable = calculable()
 
     @abstractmethod
@@ -18,13 +18,13 @@ class FileMetaCalculator(Generic[T]):
         raise NotImplementedError
 
 
-class FileMeta(Generic[T]):
-    """Abstract class for all FileMeta
+class FileData(Generic[T]):
+    """Abstract class for all FileData
 
-    FileMeta value can be set in of the following ways:
+    FileData value can be set in of the following ways:
     - Immediately with through a value set with __init__(value)
     - In the future through a method set with __init__(future)
-    - In the future by a FileMetaCalculator (see fpipe.gen.meta.Meta)
+    - In the future by a FileDataCalculator (see fpipe.gen.meta.Meta)
     """
 
     def __init__(
@@ -36,8 +36,8 @@ class FileMeta(Generic[T]):
         self.__future = future
 
     @staticmethod
-    def get_calculator() -> Optional[FileMetaCalculator[T]]:
-        raise NotImplementedError
+    def get_calculator() -> Optional[FileDataCalculator[T]]:
+        return None
 
     @property
     def value(self) -> T:
@@ -45,7 +45,7 @@ class FileMeta(Generic[T]):
             return self.__value
         elif self.__future:
             return self.__future()
-        raise FileMetaException(self)
+        raise FileDataException(self)
 
     @value.setter
     def value(self, v: T):

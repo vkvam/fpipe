@@ -1,9 +1,9 @@
 from typing import Union
 
-from fpipe.meta.abstract import FileMeta, FileMetaCalculator, T
+from fpipe.meta.abstract import FileData, FileDataCalculator, T
 
 
-class SizeCalculator(FileMetaCalculator):
+class SizeCalculator(FileDataCalculator):
     def __init__(self):
         super().__init__(Size)
         self.__byte_count = 0
@@ -14,7 +14,7 @@ class SizeCalculator(FileMetaCalculator):
             self.calculable.value = self.__byte_count
 
 
-class Size(FileMeta[int]):
+class Size(FileData[int]):
     @staticmethod
-    def get_calculator() -> FileMetaCalculator[T]:
+    def get_calculator() -> FileDataCalculator[T]:
         return SizeCalculator()

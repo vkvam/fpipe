@@ -7,6 +7,7 @@ from fpipe.gen.generator import FileGenerator, FileGeneratorResponse
 from fpipe.meta import Modified
 from fpipe.meta.path import Path
 from fpipe.meta.size import Size
+from fpipe.meta.stream import Stream
 
 
 class Tar(FileGenerator):
@@ -17,7 +18,7 @@ class Tar(FileGenerator):
 
     def process(self, source: File, process_meta: File):
         with tarfile.open(
-                fileobj=source.file, mode="r|*"
+                fileobj=source[Stream], mode="r|*"
         ) as tar_content_stream:
             for tar_info in tar_content_stream:
                 tar_stream = tar_content_stream.extractfile(tar_info)
@@ -25,7 +26,7 @@ class Tar(FileGenerator):
                 if tar_stream:
                     yield FileGeneratorResponse(
                         File(
-                            file=cast(BinaryIO, tar_stream),
+                            stream=cast(BinaryIO, tar_stream),
                             meta=(
                                 Size(tar_info.size),
                                 Modified(

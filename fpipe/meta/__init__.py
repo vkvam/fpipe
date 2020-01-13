@@ -11,3 +11,4 @@ from .prefix import Prefix  # noqa:F401
 from .size import Size  # noqa:F401
 from .username import Username  # noqa:F401
 from .version import Version  # noqa:F401
+from .stream import Stream  # noqa:F401

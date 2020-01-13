@@ -3,22 +3,23 @@ from typing import Type, Optional, Generator, Tuple
 
 from fpipe.file.file import File
 from fpipe.gen.generator import FileGenerator, FileGeneratorResponse
-from fpipe.meta.abstract import FileMeta
+from fpipe.meta.abstract import FileData
+from fpipe.meta.stream import Stream
 from fpipe.utils.bytesloop import BytesLoop
 from fpipe.utils.const import PIPE_BUFFER_SIZE
 
 
 class Meta(FileGenerator):
-    """Generator producing FileMeta by doing calculations on a File
+    """Generator producing FileData by doing calculations on a File
     """
-    def __init__(self, *file_meta: Type[FileMeta]):
+    def __init__(self, *file_meta: Type[FileData]):
         """
 
-        :param file_meta: a FileMeta with a link to a FileMetaCalculator
-        through FileMeta.get_calculator()
+        :param file_meta: a FileData with a link to a FileDataCalculator
+        through FileData.get_calculator()
         """
         super().__init__()
-        self.file_meta: Tuple[Type[FileMeta], ...] = file_meta
+        self.file_meta: Tuple[Type[FileData], ...] = file_meta
         self.bufsize = PIPE_BUFFER_SIZE
 
     def process(
@@ -43,8 +44,9 @@ class Meta(FileGenerator):
             ]
 
             def write_to_meta_calculators():
+                source_reader = source[Stream].read
                 while True:
-                    s = source.file.read(buf_size)
+                    s = source_reader(buf_size)
                     for write in meta_calculators_write:
                         write(s)
                     byte_loop.write(s)
@@ -59,7 +61,7 @@ class Meta(FileGenerator):
 
             yield FileGeneratorResponse(
                 File(
-                    file=byte_loop,
+                    stream=byte_loop,
                     parent=source,
                     meta=(
                         c.calculable for c in mata_calculators if c

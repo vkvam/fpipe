@@ -2,8 +2,11 @@ from abc import abstractmethod
 from threading import Thread
 from typing import Callable, Optional, Generator, Iterator, Union, List, \
     Iterable
+
+from fpipe.exceptions import FileDataException
 from fpipe.file import File
-from fpipe.meta.abstract import FileMeta
+from fpipe.meta.abstract import FileData
+from fpipe.meta.stream import Stream
 
 
 class FileGeneratorResponse:
@@ -13,16 +16,19 @@ class FileGeneratorResponse:
 
 
 MetaResolver = Union[
-    FileMeta,
+    FileData,
     Callable[
         [File],
-        FileMeta
+        FileData
 
     ]
 ]
 
 
 class FileGenerator:
+    """ Abstract class to use as base for FileGenerators
+    """
+
     def __init__(
             self,
             process_meta: Optional[
@@ -48,16 +54,18 @@ class FileGenerator:
 
     def flush(self) -> None:
         for f in self:
-            # if isinstance(f, File):
-            if f.file:
-                f.file.flush()
+            try:
+                f[Stream].flush()
+            except FileDataException:
+                pass
 
     def flush_iter(self) -> Iterator[Union[File, File]]:
         for f in self:
-            # if isinstance(f, File):
-            if f.file:
-                f.file.flush()
+            try:
+                f[Stream].flush()
                 yield f
+            except FileDataException:
+                pass
 
     @property
     def source_files(self) -> Iterator[File]:
@@ -79,7 +87,7 @@ class FileGenerator:
                 File(
                     parent=source,
                     meta=(
-                        m if isinstance(m, FileMeta) else m(source) for m in
+                        m if isinstance(m, FileData) else m(source) for m in
                         self.process_meta
                     )
                 )
@@ -119,8 +127,7 @@ class Method(FileGenerator):
 
     def __init__(
             self,
-            executor:
-            Callable[
+            executor: Callable[
                 [File], Optional[
                     Generator[FileGeneratorResponse, None, None]
                 ]

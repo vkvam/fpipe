@@ -6,6 +6,7 @@ from unittest import TestCase
 from fpipe.gen import Meta, Program, FTP
 from fpipe.file import FTPFile
 from fpipe.meta import MD5, Path
+from fpipe.meta.stream import Stream
 from fpipe.utils.const import PIPE_BUFFER_SIZE
 from test_utils.ftp_server import TestFTPServer
 
@@ -72,10 +73,10 @@ class TestFTP(TestCase):
             )
 
             for file_out in gen:
-                content_out = file_out.file.read()
+                content_out = file_out[Stream].read()
                 run_balance = False
 
-                with open(file_out.meta(Path).value, 'rb') as f:
+                with open(file_out[Path], 'rb') as f:
                     source_content = f.read()
                     md5 = hashlib.md5()
                     md5.update(source_content)
@@ -84,11 +85,11 @@ class TestFTP(TestCase):
                     self.assertEqual(content_out, source_content)
 
                     # Source file
-                    self.assertEqual(file_out.parent.parent.parent.parent.meta(MD5).value, md5.hexdigest())
+                    self.assertEqual(file_out[MD5, 2], md5.hexdigest())
                     # Encrypted file
-                    self.assertNotEqual(file_out.parent.parent.meta(MD5).value, md5.hexdigest())
+                    self.assertNotEqual(file_out[MD5, 1], md5.hexdigest())
                     # Decrypted file
-                    self.assertEqual(file_out.meta(MD5).value, md5.hexdigest())
+                    self.assertEqual(file_out[MD5], md5.hexdigest())
 
                     run_balance = True
                 self.assertTrue(run_balance)

@@ -1,5 +1,5 @@
-from fpipe.meta.abstract import FileMeta
+from fpipe.meta.abstract import FileData
 
 
-class Bucket(FileMeta[str]):
+class Bucket(FileData[str]):
     pass

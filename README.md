@@ -32,11 +32,11 @@ WorkFlow(
     S3(
         client,
         resource,
-        process_meta=lambda x: Path(f"MyPrefix/{x.meta(Path).value}"),
+        process_meta=(
+            lambda x: Path(f"MyPrefix/{x[Path]}"),
+        ),
     ),
-).compose(
-    S3File(bucket, key)
-).flush()
+).compose(S3File(bucket, key)).flush()
 ```
 
 
@@ -58,7 +58,7 @@ pip3 install boto3
 ```python
 from fpipe.file import ByteFile
 from fpipe.gen import Local, Meta
-from fpipe.meta import Path, Size, MD5
+from fpipe.meta import Path, Size, MD5, Stream
 from fpipe.workflow import WorkFlow
 
 workflow = WorkFlow(
@@ -71,14 +71,14 @@ sources = [
     ByteFile(b'y' * 20, Path('y.dat'))
 ]
 
-for stream in workflow.compose(sources):
+for file in workflow.compose(sources):
     print(f'\n{"-"*46}\n')
-    print("Path name:", stream.meta(Path).value)
-    print("Stream content: ", stream.file.read().decode('utf-8'))
-    with open(stream.meta(Path).value) as f:
+    print("Path name:", file[Path])
+    print("Stream content: ", file[Stream].read().decode('utf-8'))
+    with open(file[Path]) as f:
         print("File content:", f.read())
-    print("Stream md5:", stream.meta(MD5).value)
-    print("Stream size:", stream.meta(Size).value)
+    print("Stream md5:", file[MD5])
+    print("Stream size:", file[Size])
 ```
 
 ### Subprocess script example
@@ -97,11 +97,11 @@ workflow = WorkFlow(
 
     Program("gpg --batch --symmetric --passphrase 'secret'"),
     Meta(MD5),
-    Local(pass_through=True, process_meta=lambda x: Path(f'{x.meta(Path).value}.gpg')),
+    Local(pass_through=True, process_meta=lambda x: Path(f'{x[Path]}.gpg')),
 
     Program("gpg --batch --decrypt --passphrase 'secret'"),
     Meta(MD5),
-    Local(pass_through=True, process_meta=lambda x: Path(f'{x.meta(Path).value}.decrypted'))
+    Local(pass_through=True, process_meta=lambda x: Path(f'{x[Path]}.decrypted'))
 )
 
 sources = (
@@ -111,12 +111,12 @@ sources = (
 
 for f in workflow.compose(sources).flush_iter():
     print(f'\n{"-"*46}\n')
-    print("Original path:", f.meta(Path, 2).value)
-    print("Original md5:", f.meta(MD5, 2).value, end='\n\n')
-    print("Encrypted path:", f.meta(Path, 1).value)
-    print("Encrypted md5:", f.meta(MD5, 1).value, end='\n\n')
-    print("Decrypted path:", f.meta(Path).value)
-    print("Decrypted md5:", f.meta(MD5).value)
+    print("Original path:", f[Path, 2])
+    print("Original md5:", f[MD5, 2], end='\n\n')
+    print("Encrypted path:", f[Path, 1])
+    print("Encrypted md5:", f[MD5, 1], end='\n\n')
+    print("Decrypted path:", f[Path])
+    print("Decrypted md5:", f[MD5])
 
 ```
 

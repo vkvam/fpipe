@@ -6,6 +6,7 @@ from unittest import TestCase
 from fpipe.file import ByteFile, LocalFile
 from fpipe.gen import Meta, Local
 from fpipe.meta import MD5, Path, Size
+from fpipe.meta.stream import Stream
 from fpipe.workflow import WorkFlow
 
 
@@ -29,8 +30,8 @@ class TestLocal(TestCase):
             for f in workflow.compose(
                     ByteFile(b'x' * 2 ** 26, Path(file_names[0])),
                     ByteFile(b'y' * 2 ** 26, Path(file_names[1]))):
-                content = f.file.read()
-                with open(f.meta(Path).value, 'rb') as local_file:
+                content = f[Stream].read()
+                with open(f[Path], 'rb') as local_file:
                     self.assertEqual(content, local_file.read())
                     count += 1
             self.assertEqual(count, 2)
@@ -45,7 +46,7 @@ class TestLocal(TestCase):
             workflow = WorkFlow(
                 Local(
                     process_meta=lambda x: Path(
-                        x.meta(Path).value + append_to_file_name
+                        x[Path] + append_to_file_name
                     )
                 ),
                 Meta(Size, MD5)
@@ -59,9 +60,9 @@ class TestLocal(TestCase):
                         b'y' * 20,
                         Path(file_names[1]))
             ):
-                content = f.file.read()
+                content = f[Stream].read()
                 with open(
-                        f.meta(Path).value,
+                        f[Path],
                         'rb') as local_file:
                     count += 1
                     self.assertEqual(content, local_file.read())
@@ -70,7 +71,7 @@ class TestLocal(TestCase):
 
             for f in workflow.compose(
                     LocalFile(file_names[0] + append_to_file_name)):
-                self.assertEqual(len(f.file.read()), 10)
+                self.assertEqual(len(f[Stream].read()), 10)
                 count += 1
 
             self.assertEqual(count, 3)

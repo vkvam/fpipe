@@ -127,6 +127,6 @@ class ReversibleTestFile(TestFile):
 class TestStream(File):
     def __init__(self, size, path, reversible=False):
         if reversible:
-            super().__init__(file=ReversibleTestFile(size), meta=[Path(path)])
+            super().__init__(stream=ReversibleTestFile(size), meta=[Path(path)])
         else:
-            super().__init__(file=TestFile(size), meta=[Path(path)])
+            super().__init__(stream=TestFile(size), meta=[Path(path)])

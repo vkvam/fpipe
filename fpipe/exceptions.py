@@ -13,7 +13,7 @@ class S3WriteException(Exception):
     pass
 
 
-class FileMetaException(Exception):
+class FileDataException(Exception):
     def __init__(self, obj: Union[Type, object]):
         if isinstance(obj, type):
             super().__init__(f"Could not return metadata with type: "

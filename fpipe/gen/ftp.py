@@ -14,16 +14,16 @@ class FTP(FileGenerator):
                 source: File,
                 generated_meta_container: File):
         ftp_client = FTPClient(
-            host=source.meta(Host).value,
-            username=source.meta(Username).value,
-            password=source.meta(Password).value,
-            block_size=source.meta(BlockSize).value,
-            port=source.meta(Port).value
+            host=source[Host],
+            username=source[Username],
+            password=source[Password],
+            block_size=source[BlockSize],
+            port=source[Port]
         )
         thread, bytes_io = ftp_client.write_to_file_threaded(
-            source.meta(Path).value
+            source[Path]
         )
         yield FileGeneratorResponse(
-            File(file=bytes_io, parent=source),
+            File(stream=bytes_io, parent=source),
             thread
         )

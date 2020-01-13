@@ -1,5 +1,5 @@
-from fpipe.meta.abstract import FileMeta
+from fpipe.meta.abstract import FileData
 
 
-class Mime(FileMeta[str]):
+class Mime(FileData[str]):
     pass

@@ -1,26 +1,15 @@
 import threading
 from typing import Optional, Union, Iterable, BinaryIO
 
+from fpipe.exceptions import FileDataException
 from fpipe.file.file import File
 from fpipe.gen.generator import FileGenerator, FileGeneratorResponse, \
     MetaResolver
 from fpipe.meta.path import Path
+from fpipe.meta.stream import Stream
 from fpipe.utils.bytesloop import BytesLoop
 from fpipe.utils.const import PIPE_BUFFER_SIZE
-
-
-def _process(
-        source: BinaryIO, path_name: str,
-        byte_loop: Optional[BytesLoop] = None
-):
-    with open(path_name, "wb") as f2:
-        while True:
-            b = source.read(PIPE_BUFFER_SIZE)
-            if byte_loop:
-                byte_loop.write(b)
-            f2.write(b)
-            if not b:
-                break
+from fpipe.utils.meta import meta_prioritized
 
 
 class Local(FileGenerator):
@@ -33,41 +22,58 @@ class Local(FileGenerator):
         """
         :param pass_through: pass through the source instead of waiting for
         writes to complete
-        :param process_meta: callable that can produce FileMeta
+        :param process_meta: callable that can produce FileData
         needed by self.process()
         """
         super().__init__(process_meta)
         self.pass_through = pass_through
 
+    @staticmethod
+    def __process_stream(
+            source_stream: BinaryIO, path_name: str,
+            byte_loop: Optional[BytesLoop] = None
+    ):
+        with open(path_name, "wb") as f2:
+            while True:
+                b = source_stream.read(PIPE_BUFFER_SIZE)
+                if byte_loop:
+                    byte_loop.write(b)
+                f2.write(b)
+                if not b:
+                    break
+
     def process(self, source: File, process_meta: File):
 
-        path = File.meta_prioritized(
+        path = meta_prioritized(
             Path,
             process_meta,
             source
         )
 
-        if source.file:
+        try:
+            source_stream = source[Stream]
             if self.pass_through:
                 with BytesLoop() as byte_loop:
                     proc_thread = threading.Thread(
-                        target=_process,
-                        args=(source.file, path.value, byte_loop),
+                        target=Local.__process_stream,
+                        args=(source_stream, path, byte_loop),
                         name=f"{self.__class__.__name__}",
                         daemon=True,
                     )
                     yield FileGeneratorResponse(
-                        File(file=byte_loop, parent=source, meta=path),
+                        File(stream=byte_loop, parent=source, meta=Path(
+                            path
+                        )),
                         proc_thread,
                     )
             else:
-                _process(source.file, path.value)
-                with open(path.value, "rb") as f:
+                Local.__process_stream(source_stream, path)
+                with open(path, "rb") as f:
                     yield FileGeneratorResponse(
-                        File(file=f, parent=source, meta=path)
+                        File(stream=f, parent=source, meta=Path(path))
                     )
-        else:
-            with open(path.value, "rb") as f:
+        except FileDataException:
+            with open(path, "rb") as f:
                 yield FileGeneratorResponse(
-                    File(file=f, parent=source, meta=path)
+                    File(stream=f, parent=source, meta=Path(path))
                 )

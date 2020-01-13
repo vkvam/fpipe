@@ -1,11 +1,11 @@
 from typing import Iterable, Type
-from fpipe.exceptions import FileMetaException
+from fpipe.exceptions import FileDataException
 from fpipe.meta import Version
 from fpipe.meta.modified import Modified
 from fpipe.meta.mime import Mime
 from fpipe.meta.path import Path
 from fpipe.meta.size import Size
-from fpipe.meta.abstract import FileMeta
+from fpipe.meta.abstract import FileData
 from fpipe.utils.s3_reader import S3FileReader
 
 
@@ -16,7 +16,7 @@ class S3MetadataProducer:
         self.bucket = reader.bucket
         self.path = reader.key
 
-    def generate(self) -> Iterable[FileMeta]:
+    def generate(self) -> Iterable[FileData]:
         if self.reader.version:
             yield Version(self.reader.version)
 
@@ -27,7 +27,7 @@ class S3MetadataProducer:
 
     def __get_metadata(self, lock, key: str, value_class):
         if lock.locked():
-            raise FileMetaException(value_class)
+            raise FileDataException(value_class)
         self.__s3_obj = self.__s3_obj or self.reader.s3_client.get_object(
             Bucket=self.reader.bucket,
             Key=self.reader.key,
@@ -40,7 +40,7 @@ class S3MetadataProducer:
         if self.__s3_obj:
             return self.__s3_obj[key]
         else:
-            raise FileMetaException(value_class)  # TODO: improve
+            raise FileDataException(value_class)  # TODO: improve
 
     def __future(self, key_name, value_class: Type):
         lock = self.reader.meta_lock

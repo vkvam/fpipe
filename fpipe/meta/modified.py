@@ -1,7 +1,7 @@
 import datetime
 
-from fpipe.meta.abstract import FileMeta
+from fpipe.meta.abstract import FileData
 
 
-class Modified(FileMeta[datetime.datetime]):
+class Modified(FileData[datetime.datetime]):
     pass
